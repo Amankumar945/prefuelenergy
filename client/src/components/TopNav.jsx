@@ -93,8 +93,14 @@ export default function TopNav() {
               Quotes
             </Link>
           )}
-          <span className="mx-2 text-gray-300">|</span>
-          <span className="text-gray-600 hidden sm:inline">{user?.name} • {user?.role}</span>
+          <span className="mx-2 text-gray-200">|</span>
+          <span className="hidden sm:inline-flex items-center gap-2 text-gray-700">
+            <span className="px-2 py-0.5 rounded-md bg-gray-100 border text-xs">
+              <span className="font-medium">{user?.name || 'User'}</span>
+              <span className="mx-1 text-gray-400">•</span>
+              <span className="uppercase tracking-wide text-[10px] px-1.5 py-0.5 rounded bg-white border">{user?.role || 'role'}</span>
+            </span>
+          </span>
           <DigitalClock />
           <button onClick={logout} className="ml-2 px-3 py-1.5 rounded-lg bg-brand text-white hover:bg-brand-dark">
             Logout
