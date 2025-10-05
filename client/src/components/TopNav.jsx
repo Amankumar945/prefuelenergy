@@ -15,12 +15,12 @@ export default function TopNav() {
 
   return (
     <header className="bg-white/80 backdrop-blur border-b border-gray-100">
-      <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between flex-nowrap overflow-x-auto">
+        <div className="flex items-center gap-3 min-w-0">
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-brand to-solar.amber animate-float" />
-          <div className="font-semibold">Green Tree • Prefuel Energy</div>
+          <div className="font-semibold whitespace-nowrap text-sm sm:text-base">Green Tree • Prefuel Energy</div>
         </div>
-        <nav className="flex items-center gap-2 text-sm">
+        <nav className="flex items-center gap-2 text-sm flex-nowrap">
           {(user?.role === 'admin' || user?.role === 'staff') && (
             <Link
               to="/"
