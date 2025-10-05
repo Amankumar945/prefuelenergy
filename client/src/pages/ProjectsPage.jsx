@@ -91,7 +91,7 @@ export default function ProjectsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-brand/5 to-white">
       <TopNav />
-      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6 animate-fadein">
+      <div className="max-w-7xl mx-auto px-4 py-6 space-y-6 animate-fadein">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold">Projects</h2>

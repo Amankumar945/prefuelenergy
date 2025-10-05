@@ -70,7 +70,7 @@ export default function HRDashboardPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-brand/5 to-white">
       <TopNav />
-      <main className="max-w-6xl mx-auto px-4 py-6 space-y-6 animate-fadein">
+      <main className="max-w-7xl mx-auto px-4 py-6 space-y-6 animate-fadein">
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
           <h2 className="text-2xl font-semibold">HR Dashboard</h2>
           <p className="text-sm text-gray-500 mt-1">Manage employees, attendance, leaves, and recruitment.</p>
