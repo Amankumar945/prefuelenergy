@@ -186,6 +186,15 @@ const tasks = [
 
 let attendanceRecord = { date: '', present: 0, absent: 0 };
 
+// Service tickets and invoices (new)
+const serviceTickets = [
+  // { id, projectId, leadId, title, priority: 'low'|'medium'|'high', status: 'open'|'in_progress'|'resolved', assignedTo, createdAt }
+];
+
+const invoices = [
+  // { id, quoteId, customerName, amount, status: 'draft'|'sent'|'paid', createdAt }
+];
+
 // Helpers
 function generateToken(user) {
   return jwt.sign(
@@ -419,6 +428,47 @@ app.post('/api/attendance', authMiddleware, (req, res) => {
   const { date, present = 0, absent = 0 } = req.body || {};
   attendanceRecord = { date, present: Number(present)||0, absent: Number(absent)||0 };
   res.json({ attendance: attendanceRecord });
+});
+
+// Service tickets
+app.get('/api/service-tickets', authMiddleware, (req, res) => {
+  const { projectId, leadId } = req.query || {};
+  const list = serviceTickets.filter((t) => (!projectId || t.projectId === projectId) && (!leadId || t.leadId === leadId));
+  res.json({ tickets: list });
+});
+
+app.post('/api/service-tickets', authMiddleware, (req, res) => {
+  const { projectId = null, leadId = null, title, priority = 'low', assignedTo = '' } = req.body || {};
+  if (!title) return res.status(400).json({ message: 'title required' });
+  const ticket = { id: `svc${Date.now()}`, projectId, leadId, title, priority, status: 'open', assignedTo, createdAt: new Date().toISOString() };
+  serviceTickets.unshift(ticket);
+  res.json({ ticket });
+});
+
+app.put('/api/service-tickets/:id', authMiddleware, (req, res) => {
+  const idx = serviceTickets.findIndex((t) => t.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ message: 'Ticket not found' });
+  serviceTickets[idx] = { ...serviceTickets[idx], ...req.body };
+  res.json({ ticket: serviceTickets[idx] });
+});
+
+// Invoices
+app.get('/api/invoices', authMiddleware, (req, res) => {
+  res.json({ invoices });
+});
+
+app.post('/api/invoices', authMiddleware, (req, res) => {
+  const { quoteId = null, customerName = 'Customer', amount = 0, status = 'draft' } = req.body || {};
+  const inv = { id: `inv${Date.now()}`, quoteId, customerName, amount: Number(amount)||0, status, createdAt: new Date().toISOString() };
+  invoices.unshift(inv);
+  res.json({ invoice: inv });
+});
+
+app.put('/api/invoices/:id', authMiddleware, (req, res) => {
+  const idx = invoices.findIndex((i) => i.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ message: 'Invoice not found' });
+  invoices[idx] = { ...invoices[idx], ...req.body };
+  res.json({ invoice: invoices[idx] });
 });
 
 app.listen(PORT, () => {

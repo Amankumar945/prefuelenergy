@@ -55,6 +55,22 @@ export default function TopNav() {
           )}
           {(user?.role === 'admin' || user?.role === 'staff') && (
             <Link
+              to="/service"
+              className={`px-3 py-1.5 rounded-lg hover:bg-gray-50 ${isActive('/service') ? 'text-brand font-medium' : 'text-gray-700'}`}
+            >
+              Service
+            </Link>
+          )}
+          {(user?.role === 'admin' || user?.role === 'staff') && (
+            <Link
+              to="/invoices"
+              className={`px-3 py-1.5 rounded-lg hover:bg-gray-50 ${isActive('/invoices') ? 'text-brand font-medium' : 'text-gray-700'}`}
+            >
+              Invoices
+            </Link>
+          )}
+          {(user?.role === 'admin' || user?.role === 'staff') && (
+            <Link
               to="/inventory"
               className={`px-3 py-1.5 rounded-lg hover:bg-gray-50 ${isActive('/inventory') ? 'text-brand font-medium' : 'text-gray-700'}`}
             >

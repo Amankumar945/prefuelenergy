@@ -48,6 +48,8 @@ export default function LeadsPage() {
   }
 
   async function removeLead(id) {
+    const user = JSON.parse(localStorage.getItem('user')||'{}')
+    if (user?.role !== 'admin') return
     await api.delete(`/api/leads/${id}`)
     setLeads((prev)=>prev.filter((l)=>l.id!==id))
   }

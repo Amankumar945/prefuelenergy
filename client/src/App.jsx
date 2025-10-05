@@ -8,6 +8,8 @@ import InventoryPage from './pages/InventoryPage.jsx'
 import QuotesPage from './pages/QuotesPage.jsx'
 import ProcurementPage from './pages/ProcurementPage.jsx'
 import ProjectDetailsPage from './pages/ProjectDetailsPage.jsx'
+import ServicePage from './pages/ServicePage.jsx'
+import InvoicesPage from './pages/InvoicesPage.jsx'
 
 function RequireAuth({ children }) {
   const token = localStorage.getItem('token')
@@ -112,6 +114,26 @@ export default function App() {
             <RequireAuth>
               <RequireRoles roles={["admin", "staff"]}>
                 <QuotesPage />
+              </RequireRoles>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/service"
+          element={
+            <RequireAuth>
+              <RequireRoles roles={["admin", "staff"]}>
+                <ServicePage />
+              </RequireRoles>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/invoices"
+          element={
+            <RequireAuth>
+              <RequireRoles roles={["admin", "staff"]}>
+                <InvoicesPage />
               </RequireRoles>
             </RequireAuth>
           }

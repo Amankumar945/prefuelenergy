@@ -25,6 +25,7 @@ export default function ProjectDetailsPage() {
   const [installerName, setInstallerName] = useState('')
   const [scheduledDate, setScheduledDate] = useState('')
   const [docUrl, setDocUrl] = useState('')
+  const [docs, setDocs] = useState([])
   const [tasks, setTasks] = useState([])
   const [taskForm, setTaskForm] = useState({ title: '', assignee: '', dueDate: '' })
 
@@ -36,6 +37,7 @@ export default function ProjectDetailsPage() {
       setScheduledDate(res.data.installation?.scheduledDate||'')
     })
     api.get('/api/tasks', { params: { projectId: id }}).then((res)=> setTasks(res.data.tasks||[]))
+    api.get('/api/documents', { params: { entityType: 'project', entityId: id }}).then((res)=> setDocs(res.data.documents||[]))
   }, [id])
 
   async function saveMilestones() {
@@ -47,6 +49,8 @@ export default function ProjectDetailsPage() {
     if (!docUrl.trim()) return
     await api.post('/api/documents', { entityType: 'project', entityId: id, url: docUrl, title: 'Attachment' })
     setDocUrl('')
+    const list = await api.get('/api/documents', { params: { entityType: 'project', entityId: id }})
+    setDocs(list.data.documents||[])
   }
 
   async function addTask(e) {
@@ -90,6 +94,12 @@ export default function ProjectDetailsPage() {
             <button onClick={attachDoc} className="rounded-lg bg-emerald-600 text-white px-3 py-2 hover:bg-emerald-700">Attach</button>
           </div>
           <div className="text-xs text-gray-500">Note: URLs are stored demo-only.</div>
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+            {docs.map((d)=> (
+              <a key={d.id} href={d.url} target="_blank" rel="noreferrer" className="p-3 rounded-lg border hover:bg-gray-50 truncate">{d.title||'Attachment'} — {d.url}</a>
+            ))}
+            {docs.length===0 && <div className="text-sm text-gray-500">No attachments yet.</div>}
+          </div>
         </section>
 
         <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 space-y-3">
