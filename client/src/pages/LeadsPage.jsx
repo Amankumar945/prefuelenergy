@@ -16,6 +16,10 @@ function Pill({ children, color }) {
 
 export default function LeadsPage() {
   const [leads, setLeads] = useState([])
+  const [query, setQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [page, setPage] = useState(1)
+  const pageSize = 6
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({ name: '', phone: '', email: '', source: 'organic', projectSizeKw: 0 })
 
@@ -60,6 +64,19 @@ export default function LeadsPage() {
     return { total, byStatus }
   }, [leads])
 
+  const filtered = useMemo(()=>{
+    const q = query.trim().toLowerCase()
+    return leads.filter((l)=> (
+      (!q || (l.name?.toLowerCase().includes(q) || l.email?.toLowerCase().includes(q) || l.phone?.toLowerCase().includes(q))) &&
+      (!statusFilter || l.status === statusFilter)
+    ))
+  }, [leads, query, statusFilter])
+
+  const paged = useMemo(()=>{
+    const start = (page-1)*pageSize
+    return filtered.slice(start, start+pageSize)
+  }, [filtered, page])
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-brand/5 to-white">
       <TopNav />
@@ -73,6 +90,18 @@ export default function LeadsPage() {
         </div>
 
         <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-4">
+            <input className="rounded-lg border px-3 py-2 sm:col-span-2" placeholder="Search name/email/phone" value={query} onChange={(e)=>{setQuery(e.target.value); setPage(1)}} />
+            <select className="rounded-lg border px-3 py-2 sm:col-span-1" value={statusFilter} onChange={(e)=>{setStatusFilter(e.target.value); setPage(1)}}>
+              <option value="">All statuses</option>
+              <option value="new">New</option>
+              <option value="qualified">Qualified</option>
+              <option value="quoted">Quoted</option>
+              <option value="won">Won</option>
+              <option value="lost">Lost</option>
+            </select>
+            <div className="text-sm text-gray-600 flex items-center">Matches: {filtered.length}</div>
+          </div>
           <form onSubmit={addLead} className="grid grid-cols-1 sm:grid-cols-6 gap-3">
             <input className="sm:col-span-2 rounded-lg border px-3 py-2" placeholder="Full name" value={form.name} onChange={(e)=>setForm((s)=>({...s,name:e.target.value}))} />
             <input className="sm:col-span-1 rounded-lg border px-3 py-2" placeholder="Phone" value={form.phone} onChange={(e)=>setForm((s)=>({...s,phone:e.target.value}))} />
@@ -89,7 +118,7 @@ export default function LeadsPage() {
         </section>
 
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {leads.map((l) => (
+          {paged.map((l) => (
             <div key={l.id} className="border rounded-2xl p-5 bg-white shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="font-medium">{l.name}</div>
@@ -109,10 +138,17 @@ export default function LeadsPage() {
               </div>
             </div>
           ))}
-          {leads.length===0 && (
+          {filtered.length===0 && (
             <div className="text-sm text-gray-500">No leads yet.</div>
           )}
         </section>
+        {filtered.length>pageSize && (
+          <div className="flex items-center justify-center gap-2 text-sm">
+            <button disabled={page===1} onClick={()=>setPage((p)=>Math.max(1,p-1))} className="px-3 py-1.5 rounded-lg border disabled:opacity-50">Prev</button>
+            <span>Page {page} / {Math.ceil(filtered.length/pageSize)}</span>
+            <button disabled={page>=Math.ceil(filtered.length/pageSize)} onClick={()=>setPage((p)=>p+1)} className="px-3 py-1.5 rounded-lg border disabled:opacity-50">Next</button>
+          </div>
+        )}
       </div>
       <Footer />
     </div>

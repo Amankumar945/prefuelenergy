@@ -345,6 +345,38 @@ app.put('/api/quotes/:id', authMiddleware, (req, res) => {
   res.json({ quote: quotes[idx] });
 });
 
+// Convert quote to project
+app.post('/api/quotes/:id/convert', authMiddleware, (req, res) => {
+  const q = quotes.find((qq) => qq.id === req.params.id);
+  if (!q) return res.status(404).json({ message: 'Quote not found' });
+  const customerName = req.body?.customerName || `Project from ${q.leadId || 'quote'}`;
+  const newProject = {
+    id: `p${Date.now()}`,
+    customerName,
+    siteAddress: req.body?.siteAddress || 'To Assign',
+    scheme: 'Rooftop Solar Subsidy Scheme (India)',
+    capacityKw: Number(req.body?.capacityKw || 0),
+    status: 'not_started',
+    installation: {
+      installedItems: [],
+      pendingItems: [],
+      scheduledDate: '',
+      installerName: 'To Assign',
+      lastUpdated: new Date().toISOString().slice(0,10),
+      steps: [
+        { name: 'Site Survey', status: 'pending' },
+        { name: 'Design & BOM', status: 'pending' },
+        { name: 'Installation', status: 'pending' },
+        { name: 'Net Metering', status: 'pending' },
+      ],
+    },
+  };
+  projects.unshift(newProject);
+  q.status = 'accepted';
+  q.projectId = newProject.id;
+  res.json({ project: newProject, quote: q });
+});
+
 // Inventory and procurement
 app.get('/api/items', authMiddleware, (req, res) => {
   res.json({ items });

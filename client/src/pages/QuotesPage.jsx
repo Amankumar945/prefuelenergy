@@ -7,6 +7,7 @@ export default function QuotesPage() {
   const [leads, setLeads] = useState([])
   const [quotes, setQuotes] = useState([])
   const [form, setForm] = useState({ leadId: '', items: [{ itemId: '', name: '', qty: 1, price: 0 }] })
+  const [convertForm, setConvertForm] = useState({ customerName: '', siteAddress: '', capacityKw: 0 })
 
   useEffect(() => {
     Promise.all([
@@ -39,6 +40,13 @@ export default function QuotesPage() {
     const res = await api.post('/api/quotes', payload)
     setQuotes((prev)=>[res.data.quote, ...prev])
     setForm({ leadId: '', items: [{ itemId: '', name: '', qty: 1, price: 0 }] })
+  }
+
+  async function convertToProject(id) {
+    const payload = { ...convertForm }
+    const res = await api.post(`/api/quotes/${id}/convert`, payload)
+    setQuotes((prev)=> prev.map((q)=> q.id===id ? res.data.quote : q))
+    setConvertForm({ customerName: '', siteAddress: '', capacityKw: 0 })
   }
 
   return (
@@ -87,6 +95,15 @@ export default function QuotesPage() {
               <div className="text-sm text-gray-600">Lead: {q.leadId || '—'}</div>
               <div className="text-sm">Amount: <span className="font-semibold">₹ {Number(q.amount||0).toLocaleString()}</span></div>
               <div className="mt-2 text-xs text-gray-500">Lines: {q.items?.length||0}</div>
+              {!q.projectId && (
+                <div className="mt-3 grid grid-cols-1 gap-2 text-sm">
+                  <input className="rounded-lg border px-3 py-2" placeholder="Customer name" value={convertForm.customerName} onChange={(e)=>setConvertForm((s)=>({...s,customerName:e.target.value}))} />
+                  <input className="rounded-lg border px-3 py-2" placeholder="Site address" value={convertForm.siteAddress} onChange={(e)=>setConvertForm((s)=>({...s,siteAddress:e.target.value}))} />
+                  <input type="number" min="0" className="rounded-lg border px-3 py-2" placeholder="Capacity (kW)" value={convertForm.capacityKw} onChange={(e)=>setConvertForm((s)=>({...s,capacityKw:Number(e.target.value)||0}))} />
+                  <button onClick={()=>convertToProject(q.id)} className="rounded-lg bg-emerald-600 text-white px-3 py-2 hover:bg-emerald-700">Convert to Project</button>
+                </div>
+              )}
+              {q.projectId && <div className="mt-2 text-xs text-emerald-700">Converted → {q.projectId}</div>}
             </div>
           ))}
           {quotes.length===0 && <div className="text-sm text-gray-500">No quotes yet.</div>}
