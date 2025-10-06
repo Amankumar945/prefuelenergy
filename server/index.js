@@ -84,6 +84,16 @@ const projects = [
         { name: 'Net Metering', status: 'pending' },
       ],
     },
+    acquisition: {
+      sourceType: 'telecaller', // telecaller | site_agent | survey | organic | inorganic | digital_ads | referral
+      sourceChannel: 'Inbound Call',
+      agent: { id: 'tc1', name: 'Aarav (Telecaller)', phone: '+91-9000000101' },
+    },
+    followUp: {
+      ownerRole: 'telecaller',
+      person: { id: 'tc1', name: 'Aarav', phone: '+91-9000000101' },
+      lastContacted: '2025-10-04',
+    },
   },
   {
     id: 'p2',
@@ -111,6 +121,15 @@ const projects = [
         { name: 'Net Metering', status: 'done', date: '2025-08-28' },
       ],
     },
+    acquisition: {
+      sourceType: 'organic',
+      sourceChannel: 'Website',
+    },
+    followUp: {
+      ownerRole: 'site_agent',
+      person: { id: 'sa2', name: 'Pooja (Field)', phone: '+91-9000000202' },
+      lastContacted: '2025-09-29',
+    },
   },
   {
     id: 'p3',
@@ -135,6 +154,154 @@ const projects = [
         { name: 'Net Metering', status: 'pending' },
       ],
     },
+    acquisition: {
+      sourceType: 'digital_ads',
+      sourceChannel: 'Meta Ads',
+    },
+    followUp: {
+      ownerRole: 'sales',
+      person: { id: 'sl1', name: 'Meera (Sales)', phone: '+91-9000000303' },
+      lastContacted: '2025-09-30',
+    },
+  },
+  // Additional sample projects for testing filters (India context)
+  {
+    id: 'p4',
+    customerName: 'Singh Bungalow',
+    siteAddress: 'Vaishali Nagar, Jaipur, RJ',
+    scheme: 'Rooftop Solar Subsidy Scheme (India)',
+    capacityKw: 7,
+    status: 'working',
+    installation: {
+      installedItems: [
+        { item: 'Panels', qty: 12, unit: 'pcs' },
+        { item: 'Inverter', qty: 1, unit: 'unit' },
+      ],
+      pendingItems: [
+        { item: 'Net Metering', qty: 1, unit: 'approval' },
+      ],
+      scheduledDate: '2025-10-08',
+      installerName: 'Rahul Verma',
+      lastUpdated: '2025-10-02',
+      steps: [
+        { name: 'Site Survey', status: 'done', date: '2025-09-25' },
+        { name: 'Design & BOM', status: 'done', date: '2025-09-28' },
+        { name: 'Installation', status: 'in_progress', date: '2025-10-08' },
+        { name: 'Net Metering', status: 'pending' },
+      ],
+    },
+    acquisition: {
+      sourceType: 'referral',
+      sourceChannel: 'Neighbour Referral',
+      agent: { id: 'sl2', name: 'Priya (Sales)', phone: '+91-9000000404' },
+    },
+    followUp: {
+      ownerRole: 'sales',
+      person: { id: 'sl2', name: 'Priya', phone: '+91-9000000404' },
+      lastContacted: '2025-10-03',
+    },
+  },
+  {
+    id: 'p5',
+    customerName: 'Roy Residency',
+    siteAddress: 'Salt Lake, Kolkata, WB',
+    scheme: 'Rooftop Solar Subsidy Scheme (India)',
+    capacityKw: 10,
+    status: 'completed',
+    installation: {
+      installedItems: [
+        { item: 'Panels', qty: 20, unit: 'pcs' },
+        { item: 'Inverter', qty: 2, unit: 'unit' },
+        { item: 'Wiring', qty: 1, unit: 'set' },
+      ],
+      pendingItems: [],
+      scheduledDate: '2025-07-18',
+      installerName: 'Sourav Dutta',
+      lastUpdated: '2025-08-05',
+      steps: [
+        { name: 'Site Survey', status: 'done', date: '2025-07-01' },
+        { name: 'Design & BOM', status: 'done', date: '2025-07-05' },
+        { name: 'Installation', status: 'done', date: '2025-07-18' },
+        { name: 'Net Metering', status: 'done', date: '2025-07-30' },
+      ],
+    },
+    acquisition: {
+      sourceType: 'organic',
+      sourceChannel: 'Website',
+    },
+    followUp: {
+      ownerRole: 'site_agent',
+      person: { id: 'sa3', name: 'Sourav (Field)', phone: '+91-9000000505' },
+      lastContacted: '2025-07-30',
+    },
+  },
+  {
+    id: 'p6',
+    customerName: 'Verma House',
+    siteAddress: 'Gomti Nagar, Lucknow, UP',
+    scheme: 'Rooftop Solar Subsidy Scheme (India)',
+    capacityKw: 6,
+    status: 'not_started',
+    installation: {
+      installedItems: [],
+      pendingItems: [
+        { item: 'Site Survey', qty: 1, unit: 'visit' },
+      ],
+      scheduledDate: '2025-10-15',
+      installerName: 'To Assign',
+      lastUpdated: '2025-10-01',
+      steps: [
+        { name: 'Site Survey', status: 'pending' },
+        { name: 'Design & BOM', status: 'pending' },
+        { name: 'Installation', status: 'pending' },
+        { name: 'Net Metering', status: 'pending' },
+      ],
+    },
+    acquisition: {
+      sourceType: 'digital_ads',
+      sourceChannel: 'Google Ads',
+    },
+    followUp: {
+      ownerRole: 'telecaller',
+      person: { id: 'tc3', name: 'Neha', phone: '+91-9000000606' },
+      lastContacted: '2025-10-04',
+    },
+  },
+  {
+    id: 'p7',
+    customerName: 'TechPark Tower A',
+    siteAddress: 'Hinjawadi Phase 2, Pune, MH',
+    scheme: 'Commercial Rooftop (India)',
+    capacityKw: 25,
+    status: 'working',
+    installation: {
+      installedItems: [
+        { item: 'Panels', qty: 45, unit: 'pcs' },
+        { item: 'Inverter', qty: 3, unit: 'unit' },
+      ],
+      pendingItems: [
+        { item: 'Mounting Structure', qty: 1, unit: 'set' },
+      ],
+      scheduledDate: '2025-10-12',
+      installerName: 'Pooja Singh',
+      lastUpdated: '2025-10-03',
+      steps: [
+        { name: 'Site Survey', status: 'done', date: '2025-09-20' },
+        { name: 'Design & BOM', status: 'in_progress', date: '2025-10-03' },
+        { name: 'Installation', status: 'pending' },
+        { name: 'Net Metering', status: 'pending' },
+      ],
+    },
+    acquisition: {
+      sourceType: 'inorganic',
+      sourceChannel: 'Cold Outreach',
+      agent: { id: 'sl4', name: 'Karan (Sales)', phone: '+91-9000000707' },
+    },
+    followUp: {
+      ownerRole: 'sales',
+      person: { id: 'sl4', name: 'Karan', phone: '+91-9000000707' },
+      lastContacted: '2025-10-03',
+    },
   },
 ];
 
@@ -149,6 +316,8 @@ const leadsData = [
     status: 'new', // new | qualified | quoted | won | lost
     projectSizeKw: 5,
     createdAt: '2025-09-25T10:00:00Z',
+    acquisition: { sourceType: 'organic', sourceChannel: 'Website' },
+    owner: { role: 'telecaller', person: { id: 'tc1', name: 'Aarav', phone: '+91-9000000101' } },
   },
   {
     id: 'l2',
@@ -159,6 +328,8 @@ const leadsData = [
     status: 'qualified',
     projectSizeKw: 3,
     createdAt: '2025-09-28T10:00:00Z',
+    acquisition: { sourceType: 'referral', sourceChannel: 'Customer Referral' },
+    owner: { role: 'sales', person: { id: 'sl1', name: 'Meera', phone: '+91-9000000303' } },
   },
 ];
 
@@ -169,11 +340,96 @@ const items = [
 ];
 
 const purchaseOrders = [
-  // { id, supplier, items:[{itemId, qty}], status: pending|ordered|received, createdAt }
+  // { id, supplier, items:[{itemId, qty, unitPrice, taxPercent}], status: ordered|received, createdAt, totals:{subtotal, tax, grandTotal} }
+  {
+    id: 'po1001',
+    supplier: 'ABC Solar Distributor – Noida',
+    items: [
+      { itemId: 'i1', qty: 12, unitPrice: 5200, taxPercent: 12 }, // 500W panels
+      { itemId: 'i2', qty: 1, unitPrice: 32000, taxPercent: 18 }, // 5kW inverter
+    ],
+    status: 'ordered',
+    createdAt: '2025-10-02T10:00:00Z',
+    totals: { subtotal: 0, tax: 0, grandTotal: 0 }, // will be recalculated on read/create
+  },
+  {
+    id: 'po1002',
+    supplier: 'Sunrise Renewables – Jaipur',
+    items: [
+      { itemId: 'i3', qty: 5, unitPrice: 8500, taxPercent: 18 }, // Mounting structure
+    ],
+    status: 'ordered',
+    createdAt: '2025-10-03T09:30:00Z',
+    totals: { subtotal: 0, tax: 0, grandTotal: 0 },
+  },
 ];
 
 const quotes = [
-  // { id, leadId, projectId, amount, status: draft|sent|accepted|rejected, items:[{itemId, qty, price}], createdAt }
+  // { id, leadId, projectId, amount, status: draft|sent|accepted|rejected, items:[{itemId, name, qty, price}], createdAt }
+  // Residential 2 kW sample (approx ₹35/W → ~₹70,000)
+  {
+    id: 'q2001',
+    name: 'Residential 2 kW — Rooftop Subsidy',
+    leadId: 'l1',
+    projectId: null,
+    status: 'sent',
+    items: [
+      { itemId: 'i1', name: 'Solar Panel 500W', qty: 4, price: 9000 }, // ₹36,000
+      { itemId: 'i2', name: 'String Inverter 2kW', qty: 1, price: 18000 }, // ₹18,000
+      { itemId: 'i3', name: 'Mounting Structure (set)', qty: 1, price: 8000 }, // ₹8,000
+      { itemId: null, name: 'BOS (cables, DCDB/ACDB, earthing)', qty: 1, price: 8000 }, // ₹8,000
+    ],
+    amount: 36000 + 18000 + 8000 + 8000,
+    createdAt: '2025-10-02T12:00:00Z',
+  },
+  // Commercial 5 kW sample (₹30/W → ₹1,50,000)
+  {
+    id: 'q2002',
+    name: 'Commercial 5 kW — ₹30/W',
+    leadId: 'l2',
+    projectId: null,
+    status: 'sent',
+    items: [
+      { itemId: 'i1', name: 'Solar Panel 500W', qty: 10, price: 9000 }, // ₹90,000
+      { itemId: 'i2', name: 'String Inverter 5kW', qty: 1, price: 32000 }, // ₹32,000
+      { itemId: 'i3', name: 'Mounting Structure (set)', qty: 1, price: 14000 }, // ₹14,000
+      { itemId: null, name: 'BOS + Installation', qty: 1, price: 14000 }, // ₹14,000
+    ],
+    amount: 90000 + 32000 + 14000 + 14000, // ₹1,50,000
+    createdAt: '2025-10-03T09:00:00Z',
+  },
+  // Commercial 7.5 kW sample (₹30/W → ₹2,25,000)
+  {
+    id: 'q2003',
+    name: 'Commercial 7.5 kW — ₹30/W',
+    leadId: null,
+    projectId: null,
+    status: 'sent',
+    items: [
+      { itemId: 'i1', name: 'Solar Panel 500W', qty: 15, price: 9000 }, // ₹1,35,000
+      { itemId: null, name: 'String Inverter 7.5kW', qty: 1, price: 50000 }, // ₹50,000 (illustrative)
+      { itemId: 'i3', name: 'Mounting Structure (set)', qty: 1, price: 20000 }, // ₹20,000
+      { itemId: null, name: 'BOS + Installation', qty: 1, price: 20000 }, // ₹20,000
+    ],
+    amount: 135000 + 50000 + 20000 + 20000, // ₹2,25,000
+    createdAt: '2025-10-03T10:30:00Z',
+  },
+  // Commercial 10 kW sample (₹30/W → ₹3,00,000)
+  {
+    id: 'q2004',
+    name: 'Commercial 10 kW — ₹30/W',
+    leadId: null,
+    projectId: null,
+    status: 'sent',
+    items: [
+      { itemId: 'i1', name: 'Solar Panel 500W', qty: 20, price: 9000 }, // ₹1,80,000
+      { itemId: null, name: 'String Inverter 10kW', qty: 1, price: 70000 }, // ₹70,000 (illustrative)
+      { itemId: 'i3', name: 'Mounting Structure (set)', qty: 1, price: 26000 }, // ₹26,000
+      { itemId: null, name: 'BOS + Installation', qty: 1, price: 24000 }, // ₹24,000
+    ],
+    amount: 180000 + 70000 + 26000 + 24000, // ₹3,00,000
+    createdAt: '2025-10-03T11:00:00Z',
+  },
 ];
 
 const documents = [
@@ -192,7 +448,37 @@ const serviceTickets = [
 ];
 
 const invoices = [
-  // { id, quoteId, customerName, amount, status: 'draft'|'sent'|'paid', createdAt }
+  // { id, quoteId, customerName, items:[{ description, qty, price, taxPercent }], status: 'draft'|'sent'|'paid', createdAt }
+  {
+    id: 'inv1001',
+    quoteId: null,
+    customerName: 'Sharma Residence',
+    items: [
+      { description: 'Solar Panel 500W', qty: 10, price: 5200, taxPercent: 12 },
+      { description: 'String Inverter 5kW', qty: 1, price: 32000, taxPercent: 18 },
+      { description: 'Mounting Structure (set)', qty: 1, price: 8500, taxPercent: 18 },
+    ],
+    status: 'sent',
+    createdAt: '2025-10-03T10:00:00Z',
+  },
+  {
+    id: 'inv1002',
+    quoteId: null,
+    customerName: 'Gupta Apartments',
+    items: [
+      { description: 'Panels (30 pcs)', qty: 1, price: 155000, taxPercent: 12 },
+      { description: 'Inverters (2 units)', qty: 1, price: 60000, taxPercent: 18 },
+      { description: 'Wiring + BOS', qty: 1, price: 18000, taxPercent: 18 },
+    ],
+    status: 'paid',
+    createdAt: '2025-09-12T15:30:00Z',
+  },
+];
+
+// Announcements (global)
+const announcements = [
+  // { id, title, body, audience: 'all'|'staff'|'hr'|'sales', startsAt, endsAt, active: boolean, createdBy }
+  { id: 'a1', title: 'October Incentive', body: 'Complete 10 sites in October to win a smartphone!', audience: 'all', startsAt: '2025-10-01', endsAt: '2025-10-31', active: true, createdBy: 'admin' },
 ];
 
 // Helpers
@@ -283,13 +569,15 @@ app.get('/api/projects/:id', authMiddleware, (req, res) => {
 app.post('/api/projects/:id/milestones', authMiddleware, (req, res) => {
   const project = projects.find((p) => p.id === req.params.id);
   if (!project) return res.status(404).json({ message: 'Project not found' });
-  const { steps, installerName, scheduledDate, installedItems, pendingItems, status } = req.body || {};
+  const { steps, installerName, scheduledDate, installedItems, pendingItems, status, acquisition, followUp } = req.body || {};
   if (steps) project.installation.steps = steps;
   if (installerName) project.installation.installerName = installerName;
   if (scheduledDate) project.installation.scheduledDate = scheduledDate;
   if (Array.isArray(installedItems)) project.installation.installedItems = installedItems;
   if (Array.isArray(pendingItems)) project.installation.pendingItems = pendingItems;
   if (status) project.status = status;
+  if (acquisition) project.acquisition = acquisition;
+  if (followUp) project.followUp = followUp;
   project.installation.lastUpdated = new Date().toISOString().slice(0,10);
   res.json({ ok: true, project });
 });
@@ -300,12 +588,14 @@ app.get('/api/leads', authMiddleware, (req, res) => {
 });
 
 app.post('/api/leads', authMiddleware, (req, res) => {
-  const { name, phone, email, source = 'organic', status = 'new', projectSizeKw = 0 } = req.body || {};
+  const { name, phone, email, source = 'organic', status = 'new', projectSizeKw = 0, acquisition = null, owner = null } = req.body || {};
   if (!name) return res.status(400).json({ message: 'Name is required' });
   const lead = {
     id: `l${Date.now()}`,
     name, phone, email, source, status, projectSizeKw,
     createdAt: new Date().toISOString(),
+    acquisition: acquisition || null,
+    owner: owner || null,
   };
   leadsData.unshift(lead);
   res.json({ lead });
@@ -390,13 +680,31 @@ app.post('/api/items', authMiddleware, (req, res) => {
   res.json({ item: it });
 });
 
+function calculatePoTotals(po) {
+  const subtotal = (po.items || []).reduce((sum, ln) => sum + (Number(ln.qty)||0) * (Number(ln.unitPrice)||0), 0)
+  const tax = (po.items || []).reduce((sum, ln) => {
+    const base = (Number(ln.qty)||0) * (Number(ln.unitPrice)||0)
+    return sum + base * ((Number(ln.taxPercent)||0) / 100)
+  }, 0)
+  const grandTotal = Math.round((subtotal + tax) * 100) / 100
+  return { subtotal, tax, grandTotal }
+}
+
 app.get('/api/purchase-orders', authMiddleware, (req, res) => {
-  res.json({ purchaseOrders });
+  const enriched = purchaseOrders.map((po) => ({ ...po, totals: calculatePoTotals(po) }))
+  res.json({ purchaseOrders: enriched });
 });
 
 app.post('/api/purchase-orders', authMiddleware, (req, res) => {
   const { supplier = 'Vendor', lines = [], status = 'ordered' } = req.body || {};
-  const po = { id: `po${Date.now()}`, supplier, items: lines, status, createdAt: new Date().toISOString() };
+  const normalized = lines.map((ln) => ({
+    itemId: ln.itemId,
+    qty: Number(ln.qty)||0,
+    unitPrice: Number(ln.unitPrice)||0,
+    taxPercent: Number(ln.taxPercent)||0,
+  }))
+  const po = { id: `po${Date.now()}`, supplier, items: normalized, status, createdAt: new Date().toISOString() };
+  po.totals = calculatePoTotals(po)
   purchaseOrders.unshift(po);
   res.json({ purchaseOrder: po });
 });
@@ -462,6 +770,28 @@ app.post('/api/attendance', authMiddleware, (req, res) => {
   res.json({ attendance: attendanceRecord });
 });
 
+// Announcements
+app.get('/api/announcements', authMiddleware, (req, res) => {
+  const now = new Date().toISOString().slice(0,10)
+  const list = announcements.filter((a)=> (!a.startsAt || a.startsAt<=now) && (!a.endsAt || a.endsAt>=now))
+  res.json({ announcements: list })
+})
+
+app.post('/api/announcements', authMiddleware, (req, res) => {
+  const { title, body, audience = 'all', startsAt = null, endsAt = null, active = true } = req.body || {}
+  if (!title || !body) return res.status(400).json({ message: 'title and body required' })
+  const a = { id: `a${Date.now()}`, title, body, audience, startsAt, endsAt, active, createdBy: req.user?.email||'admin' }
+  announcements.unshift(a)
+  res.json({ announcement: a })
+})
+
+app.put('/api/announcements/:id', authMiddleware, (req, res) => {
+  const idx = announcements.findIndex((x)=> x.id === req.params.id)
+  if (idx === -1) return res.status(404).json({ message: 'Announcement not found' })
+  announcements[idx] = { ...announcements[idx], ...req.body }
+  res.json({ announcement: announcements[idx] })
+})
+
 // Service tickets
 app.get('/api/service-tickets', authMiddleware, (req, res) => {
   const { projectId, leadId } = req.query || {};
@@ -485,15 +815,44 @@ app.put('/api/service-tickets/:id', authMiddleware, (req, res) => {
 });
 
 // Invoices
+function calculateInvoiceTotals(inv) {
+  const subtotal = (inv.items || []).reduce((s, it) => s + (Number(it.qty)||0)*(Number(it.price)||0), 0)
+  const tax = (inv.items || []).reduce((s, it) => {
+    const base = (Number(it.qty)||0)*(Number(it.price)||0)
+    return s + base*((Number(it.taxPercent)||0)/100)
+  }, 0)
+  const grandTotal = Math.round((subtotal + tax) * 100) / 100
+  return { subtotal, tax, grandTotal }
+}
+
 app.get('/api/invoices', authMiddleware, (req, res) => {
-  res.json({ invoices });
+  const enriched = invoices.map((inv) => ({ ...inv, totals: calculateInvoiceTotals(inv) }))
+  res.json({ invoices: enriched });
 });
 
 app.post('/api/invoices', authMiddleware, (req, res) => {
-  const { quoteId = null, customerName = 'Customer', amount = 0, status = 'draft' } = req.body || {};
-  const inv = { id: `inv${Date.now()}`, quoteId, customerName, amount: Number(amount)||0, status, createdAt: new Date().toISOString() };
+  const { quoteId = null, customerName = 'Customer', amount = 0, status = 'draft', items = null } = req.body || {};
+  let invItems = Array.isArray(items) ? items.map((it)=> ({
+    description: it.description || it.name || 'Item',
+    qty: Number(it.qty)||0,
+    price: Number(it.price)||0,
+    taxPercent: Number(it.taxPercent)||0,
+  })) : null
+
+  // If items not provided but quoteId present, try deriving from quote
+  if (!invItems && quoteId) {
+    const q = quotes.find((qq)=> qq.id === quoteId)
+    if (q) {
+      invItems = (q.items||[]).map((ln)=> ({ description: ln.name || 'Item', qty: Number(ln.qty)||0, price: Number(ln.price)||0, taxPercent: 18 }))
+    }
+  }
+
+  const inv = { id: `inv${Date.now()}`, quoteId, customerName, items: invItems || [], status, createdAt: new Date().toISOString() };
+  const totals = calculateInvoiceTotals(inv)
+  // keep a legacy amount mirror for older clients if needed
+  inv.amount = totals.grandTotal
   invoices.unshift(inv);
-  res.json({ invoice: inv });
+  res.json({ invoice: { ...inv, totals } });
 });
 
 app.put('/api/invoices/:id', authMiddleware, (req, res) => {

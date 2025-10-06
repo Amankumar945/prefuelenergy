@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import TopNav from '../components/TopNav.jsx'
 import Footer from '../components/Footer.jsx'
 import ProgressBar from '../components/ProgressBar.jsx'
+import { useMemo } from 'react'
 
 function StatCard({ title, value, subtitle, accent }) {
   return (
@@ -32,6 +33,10 @@ export default function DashboardPage() {
     api.get('/api/stats')
       .then((res) => setStats(res.data))
       .catch(() => setStats({ error: true }))
+  }, [])
+  const [ann, setAnn] = useState([])
+  useEffect(() => {
+    api.get('/api/announcements').then((res)=> setAnn(res.data.announcements||[]))
   }, [])
 
   return (
@@ -115,6 +120,23 @@ export default function DashboardPage() {
               <div className="text-xs text-gray-600">Completed</div>
               <div className="text-xl font-semibold text-gray-800">{stats ? stats.projects?.completed : '—'} Handover</div>
             </div>
+          </div>
+        </section>
+        {/* Announcements */}
+        <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Announcements</h3>
+            <Link to="/announcements" className="text-sm text-brand">View all</Link>
+          </div>
+          <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+            {ann.slice(0,2).map((a)=>(
+              <div key={a.id} className="p-4 rounded-xl border bg-gray-50">
+                <div className="flex items-center justify-between"><div className="font-medium">{a.title}</div><span className="text-xs bg-white border px-2 py-0.5 rounded">{a.audience}</span></div>
+                <div className="text-sm text-gray-600 mt-1 line-clamp-2">{a.body}</div>
+                <div className="text-xs text-gray-500 mt-1">{a.startsAt||'Now'} → {a.endsAt||'Open'}</div>
+              </div>
+            ))}
+            {ann.length===0 && <div className="text-sm text-gray-500">No announcements</div>}
           </div>
         </section>
         {/* Scheme note */}

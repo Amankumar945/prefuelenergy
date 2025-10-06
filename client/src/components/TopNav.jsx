@@ -53,6 +53,12 @@ export default function TopNav() {
               Projects
             </Link>
           )}
+          <Link
+            to="/announcements"
+            className={`px-3 py-1.5 rounded-lg hover:bg-gray-50 ${isActive('/announcements') ? 'text-brand font-medium' : 'text-gray-700'}`}
+          >
+            Announcements
+          </Link>
           {(user?.role === 'admin' || user?.role === 'staff') && (
             <Link
               to="/service"
@@ -94,17 +100,19 @@ export default function TopNav() {
             </Link>
           )}
           <span className="mx-2 text-gray-200">|</span>
-          <span className="hidden sm:inline-flex items-center gap-2 text-gray-700">
-            <span className="px-2 py-0.5 rounded-md bg-gray-100 border text-xs">
-              <span className="font-medium">{user?.name || 'User'}</span>
-              <span className="mx-1 text-gray-400">•</span>
-              <span className="uppercase tracking-wide text-[10px] px-1.5 py-0.5 rounded bg-white border">{user?.role || 'role'}</span>
+          <div className="flex flex-col items-start gap-1">
+            <span className="hidden sm:inline-flex items-center gap-2 text-gray-700">
+              <span className="px-2 py-0.5 rounded-md bg-gray-100 border text-xs">
+                <span className="font-medium">{user?.name || 'User'}</span>
+                <span className="mx-1 text-gray-400">•</span>
+                <span className="uppercase tracking-wide text-[10px] px-1.5 py-0.5 rounded bg-white border">{user?.role || 'role'}</span>
+              </span>
             </span>
-          </span>
+            <button onClick={logout} className="px-3 py-1.5 rounded-lg bg-brand text-white hover:bg-brand-dark">
+              Logout
+            </button>
+          </div>
           <DigitalClock />
-          <button onClick={logout} className="ml-2 px-3 py-1.5 rounded-lg bg-brand text-white hover:bg-brand-dark">
-            Logout
-          </button>
         </nav>
       </div>
     </header>

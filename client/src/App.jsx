@@ -10,6 +10,7 @@ import ProcurementPage from './pages/ProcurementPage.jsx'
 import ProjectDetailsPage from './pages/ProjectDetailsPage.jsx'
 import ServicePage from './pages/ServicePage.jsx'
 import InvoicesPage from './pages/InvoicesPage.jsx'
+import AnnouncementsPage from './pages/AnnouncementsPage.jsx'
 
 function RequireAuth({ children }) {
   const token = localStorage.getItem('token')
@@ -135,6 +136,14 @@ export default function App() {
               <RequireRoles roles={["admin", "staff"]}>
                 <InvoicesPage />
               </RequireRoles>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/announcements"
+          element={
+            <RequireAuth>
+              <AnnouncementsPage />
             </RequireAuth>
           }
         />

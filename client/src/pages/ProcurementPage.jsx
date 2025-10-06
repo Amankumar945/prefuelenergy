@@ -6,7 +6,7 @@ import { api } from '../utils/api.js'
 export default function ProcurementPage() {
   const [items, setItems] = useState([])
   const [pos, setPos] = useState([])
-  const [form, setForm] = useState({ supplier: 'Vendor', lines: [{ itemId: '', qty: 0 }] })
+  const [form, setForm] = useState({ supplier: 'Vendor', lines: [{ itemId: '', qty: 0, unitPrice: 0, taxPercent: 0 }] })
 
   useEffect(() => {
     Promise.all([
@@ -23,7 +23,7 @@ export default function ProcurementPage() {
   }
 
   function addLine() {
-    setForm((f)=> ({...f, lines: [...f.lines, { itemId: '', qty: 0 }]}))
+    setForm((f)=> ({...f, lines: [...f.lines, { itemId: '', qty: 0, unitPrice: 0, taxPercent: 0 }]}))
   }
 
   function removeLine(idx) {
@@ -31,6 +31,15 @@ export default function ProcurementPage() {
   }
 
   const summary = useMemo(()=> form.lines.reduce((s, ln)=> s + (Number(ln.qty)||0), 0), [form.lines])
+  const money = (v)=> `₹ ${Number(v||0).toLocaleString('en-IN')}`
+  const calcTotals = useMemo(()=>{
+    const subtotal = form.lines.reduce((sum, ln)=> sum + (Number(ln.qty)||0)*(Number(ln.unitPrice)||0), 0)
+    const tax = form.lines.reduce((sum, ln)=> {
+      const base = (Number(ln.qty)||0)*(Number(ln.unitPrice)||0)
+      return sum + base*((Number(ln.taxPercent)||0)/100)
+    }, 0)
+    return { subtotal, tax, grand: subtotal+tax }
+  }, [form.lines])
 
   async function createPO(e) {
     e.preventDefault()
@@ -38,7 +47,7 @@ export default function ProcurementPage() {
     if (validLines.length===0) return
     const res = await api.post('/api/purchase-orders', { supplier: form.supplier, lines: validLines, status: 'ordered' })
     setPos((prev)=>[res.data.purchaseOrder, ...prev])
-    setForm({ supplier: 'Vendor', lines: [{ itemId: '', qty: 0 }] })
+    setForm({ supplier: 'Vendor', lines: [{ itemId: '', qty: 0, unitPrice: 0, taxPercent: 0 }] })
   }
 
   async function receivePO(id) {
@@ -68,20 +77,29 @@ export default function ProcurementPage() {
             </div>
             <div className="space-y-2">
               {form.lines.map((ln, idx)=> (
-                <div key={idx} className="grid grid-cols-1 sm:grid-cols-5 gap-2">
+                <div key={idx} className="grid grid-cols-1 sm:grid-cols-7 gap-2">
                   <select className="rounded-lg border px-3 py-2 sm:col-span-3" value={ln.itemId} onChange={(e)=>updateLine(idx,{ itemId: e.target.value })}>
                     <option value="">Select item</option>
                     {items.map((it)=> <option key={it.id} value={it.id}>{it.name} • {it.sku}</option>)}
                   </select>
                   <input type="number" min="0" className="rounded-lg border px-3 py-2 sm:col-span-1" placeholder="Qty" value={ln.qty} onChange={(e)=>updateLine(idx,{ qty: e.target.value })} />
+                  <input type="number" min="0" className="rounded-lg border px-3 py-2 sm:col-span-1" placeholder="Unit ₹" value={ln.unitPrice} onChange={(e)=>updateLine(idx,{ unitPrice: e.target.value })} />
+                  <input type="number" min="0" className="rounded-lg border px-3 py-2 sm:col-span-1" placeholder="Tax %" value={ln.taxPercent} onChange={(e)=>updateLine(idx,{ taxPercent: e.target.value })} />
                   <button type="button" onClick={()=>removeLine(idx)} className="rounded-lg border px-3 py-2 sm:col-span-1 hover:bg-gray-50">Remove</button>
                 </div>
               ))}
               <button type="button" onClick={addLine} className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50">+ Add line</button>
             </div>
 
-            <div className="text-right">
-              <button className="rounded-lg bg-brand text-white px-3 py-2 hover:bg-brand-dark">Create PO</button>
+            <div className="flex items-center justify-between text-sm text-gray-700">
+              <div className="flex flex-wrap gap-3">
+                <span>Subtotal: <b>{money(calcTotals.subtotal)}</b></span>
+                <span>Tax: <b>{money(calcTotals.tax)}</b></span>
+                <span>Total: <b>{money(calcTotals.grand)}</b></span>
+              </div>
+              <div className="text-right">
+                <button className="rounded-lg bg-brand text-white px-3 py-2 hover:bg-brand-dark">Create PO</button>
+              </div>
             </div>
           </form>
         </section>
@@ -92,6 +110,24 @@ export default function ProcurementPage() {
               <div className="flex items-center justify-between"><div className="font-medium">{p.id}</div><span className={`text-xs px-2 py-0.5 rounded bg-gray-100`}>{p.status}</span></div>
               <div className="text-sm text-gray-600">Supplier: {p.supplier}</div>
               <div className="text-xs text-gray-500">Lines: {p.items?.length||0}</div>
+              <div className="text-xs text-gray-600 mt-2">Total: <b>{money(p.totals?.grandTotal)}</b> (Subtotal {money(p.totals?.subtotal)}, Tax {money(p.totals?.tax)})</div>
+              <details className="mt-2 text-xs">
+                <summary className="cursor-pointer select-none text-brand">View PO</summary>
+                <div className="mt-2 space-y-1">
+                  {p.items?.map((ln, i)=>{
+                    const item = items.find((it)=> it.id===ln.itemId)
+                    const lineTotal = (Number(ln.qty)||0)*(Number(ln.unitPrice)||0)
+                    const lineTax = lineTotal*((Number(ln.taxPercent)||0)/100)
+                    return (
+                      <div key={i} className="p-2 rounded border bg-gray-50">
+                        <div>{item?.name||ln.itemId} • {item?.sku||''}</div>
+                        <div>Qty: {ln.qty} × Unit: {money(ln.unitPrice)} • Tax: {ln.taxPercent}%</div>
+                        <div>Line: {money(lineTotal)} • Tax: {money(lineTax)}</div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </details>
               {p.status!=='received' && <button onClick={()=>receivePO(p.id)} className="mt-2 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-700">Mark Received</button>}
             </div>
           ))}

@@ -21,7 +21,7 @@ export default function LeadsPage() {
   const [page, setPage] = useState(1)
   const pageSize = 6
   const [loading, setLoading] = useState(false)
-  const [form, setForm] = useState({ name: '', phone: '', email: '', source: 'organic', projectSizeKw: 0 })
+  const [form, setForm] = useState({ name: '', phone: '', email: '', source: 'organic', projectSizeKw: 0, acquisition: { sourceType: '', sourceChannel: '' }, owner: { role: '', person: { id: '', name: '', phone: '' } } })
 
   useEffect(() => {
     api.get('/api/leads').then((res) => setLeads(res.data.leads||[]))
@@ -38,9 +38,11 @@ export default function LeadsPage() {
         email: form.email.trim(),
         source: form.source,
         projectSizeKw: Number(form.projectSizeKw)||0,
+        acquisition: form.acquisition,
+        owner: form.owner,
       })
       setLeads((prev)=>[res.data.lead, ...prev])
-      setForm({ name: '', phone: '', email: '', source: 'organic', projectSizeKw: 0 })
+      setForm({ name: '', phone: '', email: '', source: 'organic', projectSizeKw: 0, acquisition: { sourceType: '', sourceChannel: '' }, owner: { role: '', person: { id: '', name: '', phone: '' } } })
     } finally {
       setLoading(false)
     }
@@ -113,6 +115,26 @@ export default function LeadsPage() {
               <option value="outbound">Outbound</option>
             </select>
             <input className="sm:col-span-1 rounded-lg border px-3 py-2" type="number" min="0" step="0.5" placeholder="kW" value={form.projectSizeKw} onChange={(e)=>setForm((s)=>({...s,projectSizeKw:e.target.value}))} />
+            <select className="sm:col-span-1 rounded-lg border px-3 py-2" value={form.acquisition.sourceType||''} onChange={(e)=>setForm((s)=>({...s, acquisition: { ...(s.acquisition||{}), sourceType: e.target.value }}))}>
+              <option value="">Source type</option>
+              <option value="telecaller">Telecaller</option>
+              <option value="site_agent">Site Agent</option>
+              <option value="survey">Survey</option>
+              <option value="organic">Organic</option>
+              <option value="inorganic">Inorganic</option>
+              <option value="digital_ads">Digital Ads</option>
+              <option value="referral">Referral</option>
+            </select>
+            <input className="sm:col-span-2 rounded-lg border px-3 py-2" placeholder="Channel (e.g., Website, Meta Ads)" value={form.acquisition.sourceChannel||''} onChange={(e)=>setForm((s)=>({...s, acquisition: { ...(s.acquisition||{}), sourceChannel: e.target.value }}))} />
+            <select className="sm:col-span-1 rounded-lg border px-3 py-2" value={form.owner.role||''} onChange={(e)=>setForm((s)=>({...s, owner: { ...(s.owner||{}), role: e.target.value }}))}>
+              <option value="">Owner role</option>
+              <option value="telecaller">Telecaller</option>
+              <option value="site_agent">Site Agent</option>
+              <option value="sales">Sales</option>
+            </select>
+            <input className="sm:col-span-1 rounded-lg border px-3 py-2" placeholder="Owner Name" value={form.owner.person?.name||''} onChange={(e)=>setForm((s)=>({...s, owner: { ...(s.owner||{}), person: { ...(s.owner?.person||{}), name: e.target.value } }}))} />
+            <input className="sm:col-span-1 rounded-lg border px-3 py-2" placeholder="Owner Phone" value={form.owner.person?.phone||''} onChange={(e)=>setForm((s)=>({...s, owner: { ...(s.owner||{}), person: { ...(s.owner?.person||{}), phone: e.target.value } }}))} />
+            <input className="sm:col-span-1 rounded-lg border px-3 py-2" placeholder="Owner ID" value={form.owner.person?.id||''} onChange={(e)=>setForm((s)=>({...s, owner: { ...(s.owner||{}), person: { ...(s.owner?.person||{}), id: e.target.value } }}))} />
             <button disabled={loading} className="sm:col-span-6 sm:col-start-1 rounded-lg bg-brand text-white px-3 py-2 hover:bg-brand-dark disabled:opacity-60">{loading?'Adding…':'Add Lead'}</button>
           </form>
         </section>
@@ -125,7 +147,8 @@ export default function LeadsPage() {
                 <Pill color={l.status}>{l.status}</Pill>
               </div>
               <div className="text-sm text-gray-600 mt-1">{l.email || '—'} • {l.phone || '—'}</div>
-              <div className="text-xs text-gray-500">Source: {l.source} • Size: {l.projectSizeKw} kW</div>
+              <div className="text-xs text-gray-500 flex flex-wrap gap-2">Source: {l.source} • Size: {l.projectSizeKw} kW {l.acquisition?.sourceType && (<span className="px-2 py-0.5 rounded-full border bg-white">{l.acquisition.sourceType}</span>)} {l.acquisition?.sourceChannel && (<span className="px-2 py-0.5 rounded-full border bg-white">{l.acquisition.sourceChannel}</span>)} {l.owner?.role && (<span className="px-2 py-0.5 rounded-full border bg-white">Owner: {l.owner.role}</span>)} {l.owner?.person?.name && (<span className="px-2 py-0.5 rounded-full border bg-white">{l.owner.person.name}</span>)}
+              </div>
               <div className="mt-3 flex items-center gap-2">
                 <select value={l.status} onChange={(e)=>updateLead(l.id,{ status: e.target.value })} className="rounded-lg border px-2 py-1 text-sm">
                   <option value="new">New</option>

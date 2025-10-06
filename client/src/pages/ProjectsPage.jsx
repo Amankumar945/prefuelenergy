@@ -36,6 +36,20 @@ function ProjectCard({ project }) {
       <div className="text-sm text-gray-600">{project.siteAddress}</div>
       <div className="text-xs text-gray-500">{project.scheme}</div>
       <div className="text-sm">Capacity: <span className="font-medium">{project.capacityKw} kW</span></div>
+      <div className="text-xs text-gray-600 flex flex-wrap gap-2">
+        {project.acquisition?.sourceType && (
+          <span className="px-2 py-0.5 rounded-full border bg-white">Source: {project.acquisition.sourceType}</span>
+        )}
+        {project.acquisition?.sourceChannel && (
+          <span className="px-2 py-0.5 rounded-full border bg-white">{project.acquisition.sourceChannel}</span>
+        )}
+        {project.followUp?.person?.id !== project.acquisition?.agent?.id && project.followUp?.ownerRole && (
+          <span className="px-2 py-0.5 rounded-full border bg-white">Owner: {project.followUp.ownerRole}</span>
+        )}
+        {project.followUp?.person?.id !== project.acquisition?.agent?.id && project.followUp?.person?.name && (
+          <span className="px-2 py-0.5 rounded-full border bg-white">{project.followUp.person.name}</span>
+        )}
+      </div>
       <div className="text-xs text-gray-500">Scheduled: {project.installation.scheduledDate} • Installer: {project.installation.installerName}</div>
       <div className="flex flex-wrap gap-2">
         {project.installation?.steps?.map((s, i) => <StepPill key={i} step={s} />)}
@@ -71,6 +85,7 @@ function ProjectCard({ project }) {
 export default function ProjectsPage() {
   const [data, setData] = useState([])
   const [query, setQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
 
   useEffect(() => {
     api.get('/api/projects')
@@ -98,33 +113,68 @@ export default function ProjectsPage() {
             <p className="text-sm text-gray-500">Solar scheme — grouped by status</p>
           </div>
           <div className="flex items-center gap-2">
+            <select className="rounded-lg border px-3 py-2 text-sm" value={statusFilter} onChange={(e)=>setStatusFilter(e.target.value)}>
+              <option value="">All statuses</option>
+              <option value="working">Working</option>
+              <option value="completed">Completed</option>
+              <option value="not_started">Not started</option>
+            </select>
             <input className="rounded-lg border px-3 py-2 text-sm" placeholder="Search by name/address/id" value={query} onChange={(e)=>setQuery(e.target.value)} />
             <Link to="/" className="text-sm text-brand">Back to Dashboard</Link>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <Section title="Working Projects">
-            <div className="space-y-3">
-              {groups.working.map((p) => <ProjectCard key={p.id} project={p} />)}
-              {groups.working.length === 0 && <div className="text-sm text-gray-500">No working projects</div>}
-            </div>
-          </Section>
+        {statusFilter === '' ? (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <Section title="Working Projects">
+              <div className="space-y-3">
+                {groups.working.map((p) => <ProjectCard key={p.id} project={p} />)}
+                {groups.working.length === 0 && <div className="text-sm text-gray-500">No working projects</div>}
+              </div>
+            </Section>
 
-          <Section title="Completed Projects">
-            <div className="space-y-3">
-              {groups.completed.map((p) => <ProjectCard key={p.id} project={p} />)}
-              {groups.completed.length === 0 && <div className="text-sm text-gray-500">No completed projects</div>}
-            </div>
-          </Section>
+            <Section title="Completed Projects">
+              <div className="space-y-3">
+                {groups.completed.map((p) => <ProjectCard key={p.id} project={p} />)}
+                {groups.completed.length === 0 && <div className="text-sm text-gray-500">No completed projects</div>}
+              </div>
+            </Section>
 
-          <Section title="Not Started">
-            <div className="space-y-3">
-              {groups.not_started.map((p) => <ProjectCard key={p.id} project={p} />)}
-              {groups.not_started.length === 0 && <div className="text-sm text-gray-500">No pending projects</div>}
-            </div>
-          </Section>
-        </div>
+            <Section title="Not Started">
+              <div className="space-y-3">
+                {groups.not_started.map((p) => <ProjectCard key={p.id} project={p} />)}
+                {groups.not_started.length === 0 && <div className="text-sm text-gray-500">No pending projects</div>}
+              </div>
+            </Section>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4">
+            {statusFilter === 'working' && (
+              <Section title="Working Projects">
+                <div className="space-y-3">
+                  {groups.working.map((p) => <ProjectCard key={p.id} project={p} />)}
+                  {groups.working.length === 0 && <div className="text-sm text-gray-500">No working projects</div>}
+                </div>
+              </Section>
+            )}
+            {statusFilter === 'completed' && (
+              <Section title="Completed Projects">
+                <div className="space-y-3">
+                  {groups.completed.map((p) => <ProjectCard key={p.id} project={p} />)}
+                  {groups.completed.length === 0 && <div className="text-sm text-gray-500">No completed projects</div>}
+                </div>
+              </Section>
+            )}
+            {statusFilter === 'not_started' && (
+              <Section title="Not Started">
+                <div className="space-y-3">
+                  {groups.not_started.map((p) => <ProjectCard key={p.id} project={p} />)}
+                  {groups.not_started.length === 0 && <div className="text-sm text-gray-500">No pending projects</div>}
+                </div>
+              </Section>
+            )}
+          </div>
+        )}
       </div>
       <Footer />
     </div>
