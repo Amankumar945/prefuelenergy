@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import TopNav from '../components/TopNav.jsx'
 import Footer from '../components/Footer.jsx'
 import { api } from '../utils/api.js'
+import Modal from '../components/Modal.jsx'
 
 export default function InventoryPage() {
   const [items, setItems] = useState([])
@@ -10,6 +11,9 @@ export default function InventoryPage() {
   const [page, setPage] = useState(1)
   const pageSize = 9
   const [form, setForm] = useState({ name: '', sku: '', unit: 'pcs', stock: 0, minStock: 0 })
+  const [editOpen, setEditOpen] = useState(false)
+  const [editingId, setEditingId] = useState(null)
+  const [editForm, setEditForm] = useState({ name: '', sku: '', unit: 'pcs', stock: 0, minStock: 0 })
 
   useEffect(() => {
     api.get('/api/items').then((res)=> setItems(res.data.items||[]))
@@ -31,6 +35,27 @@ export default function InventoryPage() {
   ))
   const start = (page-1)*pageSize
   const paged = filtered.slice(start, start+pageSize)
+
+  function openEdit(it) {
+    setEditingId(it.id)
+    setEditForm({ name: it.name, sku: it.sku, unit: it.unit, stock: it.stock, minStock: it.minStock })
+    setEditOpen(true)
+  }
+
+  async function saveEdit() {
+    try {
+      const res = await api.put(`/api/items/${editingId}`, {
+        name: editForm.name,
+        sku: editForm.sku,
+        unit: editForm.unit,
+        stock: Number(editForm.stock)||0,
+        minStock: Number(editForm.minStock)||0,
+      })
+      setItems((prev)=> prev.map((x)=> x.id===editingId ? res.data.item : x))
+      setEditOpen(false)
+      setEditingId(null)
+    } catch (_) {}
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-brand/5 to-white">
@@ -73,10 +98,57 @@ export default function InventoryPage() {
               </div>
               <div className="text-sm text-gray-600">Unit: {it.unit}</div>
               <div className="text-sm">Stock: <span className="font-medium">{it.stock}</span> • Min: {it.minStock}</div>
+              <div className="mt-3 flex items-center justify-between gap-2">
+                <button onClick={()=> openEdit(it)} className="px-3 py-1.5 rounded-lg border text-sm hover:bg-gray-50">Edit details</button>
+                <button onClick={async()=>{
+                  const user = JSON.parse(localStorage.getItem('user')||'{}')
+                  if (user?.role !== 'admin') return alert('Only admin can delete items')
+                  if (!confirm('Delete this item permanently?')) return
+                  try {
+                    await api.delete(`/api/items/${it.id}`)
+                    setItems((prev)=> prev.filter((x)=> x.id!==it.id))
+                  } catch (_) {}
+                }} className="px-3 py-1.5 rounded-lg border text-sm text-red-600 hover:bg-red-50">Delete</button>
+              </div>
             </div>
           ))}
           {filtered.length===0 && <div className="text-sm text-gray-500">No items match.</div>}
         </section>
+        <Modal open={editOpen} title="Edit Item" onClose={()=>{setEditOpen(false); setEditingId(null)}} onPrimary={saveEdit} primaryText="Save">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Item name</label>
+                <input className="w-full rounded-lg border px-3 py-2" value={editForm.name} onChange={(e)=>setEditForm((s)=>({...s,name:e.target.value}))} />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">SKU</label>
+                <input className="w-full rounded-lg border px-3 py-2" value={editForm.sku} onChange={(e)=>setEditForm((s)=>({...s,sku:e.target.value}))} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Unit</label>
+                <select className="w-full rounded-lg border px-3 py-2" value={editForm.unit} onChange={(e)=>setEditForm((s)=>({...s,unit:e.target.value}))}>
+                  <option>pcs</option>
+                  <option>unit</option>
+                  <option>set</option>
+                  <option>m</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">Stock</label>
+                  <input className="w-full rounded-lg border px-3 py-2" type="number" min="0" value={editForm.stock} onChange={(e)=>setEditForm((s)=>({...s,stock:e.target.value}))} />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">Min stock</label>
+                  <input className="w-full rounded-lg border px-3 py-2" type="number" min="0" value={editForm.minStock} onChange={(e)=>setEditForm((s)=>({...s,minStock:e.target.value}))} />
+                </div>
+              </div>
+            </div>
+          </div>
+        </Modal>
         {filtered.length>pageSize && (
           <div className="flex items-center justify-center gap-2 text-sm">
             <button disabled={page===1} onClick={()=>setPage((p)=>Math.max(1,p-1))} className="px-3 py-1.5 rounded-lg border disabled:opacity-50">Prev</button>

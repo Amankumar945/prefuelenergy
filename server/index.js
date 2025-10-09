@@ -1,12 +1,15 @@
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'prefuel_energy_dev_secret_please_change';
+const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173';
 
-app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
+app.use(cors({ origin: CORS_ORIGIN, credentials: true }));
 app.use(express.json());
 
 // In-memory users (simple for MVP)
@@ -490,6 +493,199 @@ function generateToken(user) {
   );
 }
 
+// Simple role guard
+function requireRole(role) {
+  return function(req, res, next) {
+    if (!req.user || req.user.role !== role) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    next();
+  }
+}
+
+// Basic validators
+function toPosNumber(val, def = 0) {
+  const n = Number(val);
+  if (!Number.isFinite(n) || n < 0) return def;
+  return n;
+}
+
+function clampTax(t) {
+  const n = toPosNumber(t, 0);
+  return Math.max(0, Math.min(28, n));
+}
+
+function isSafeHttpUrl(u) {
+  try {
+    const url = new URL(u);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch (_) {
+    return false;
+  }
+}
+
+// Persistence helpers (save/load in-memory data to disk)
+const DATA_PATH = path.join(__dirname, 'data.json');
+function saveData() {
+  try {
+    const snapshot = {
+      projects,
+      leadsData,
+      items,
+      purchaseOrders,
+      quotes,
+      documents,
+      tasks,
+      attendanceRecord,
+      serviceTickets,
+      invoices,
+      announcements,
+      leads,
+      teleCallers,
+      conversions,
+    };
+    fs.writeFileSync(DATA_PATH, JSON.stringify(snapshot, null, 2), 'utf-8');
+  } catch (err) {
+    // ignore persistence errors in MVP
+  }
+}
+
+function loadData() {
+  try {
+    if (!fs.existsSync(DATA_PATH)) return;
+    const raw = fs.readFileSync(DATA_PATH, 'utf-8');
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed.projects)) { projects.splice(0, projects.length, ...parsed.projects); }
+    if (Array.isArray(parsed.leadsData)) { leadsData.splice(0, leadsData.length, ...parsed.leadsData); }
+    if (Array.isArray(parsed.items)) { items.splice(0, items.length, ...parsed.items); }
+    if (Array.isArray(parsed.purchaseOrders)) { purchaseOrders.splice(0, purchaseOrders.length, ...parsed.purchaseOrders); }
+    if (Array.isArray(parsed.quotes)) { quotes.splice(0, quotes.length, ...parsed.quotes); }
+    if (Array.isArray(parsed.documents)) { documents.splice(0, documents.length, ...parsed.documents); }
+    if (Array.isArray(parsed.tasks)) { tasks.splice(0, tasks.length, ...parsed.tasks); }
+    if (parsed.attendanceRecord && typeof parsed.attendanceRecord === 'object') { attendanceRecord = parsed.attendanceRecord; }
+    if (Array.isArray(parsed.serviceTickets)) { serviceTickets.splice(0, serviceTickets.length, ...parsed.serviceTickets); }
+    if (Array.isArray(parsed.invoices)) { invoices.splice(0, invoices.length, ...parsed.invoices); }
+    if (Array.isArray(parsed.announcements)) { announcements.splice(0, announcements.length, ...parsed.announcements); }
+    if (parsed.leads && typeof parsed.leads === 'object') { Object.assign(leads, parsed.leads); }
+    if (Array.isArray(parsed.teleCallers)) { teleCallers.splice(0, teleCallers.length, ...parsed.teleCallers); }
+    if (parsed.conversions && typeof parsed.conversions === 'object') { Object.assign(conversions, parsed.conversions); }
+  } catch (err) {
+    // ignore load errors in MVP
+  }
+}
+
+loadData();
+
+// Seed missing inventory items from provided list (idempotent)
+function seedInventoryDefaults() {
+  const desired = [
+    { name: 'Nut & Bolt Set', sku: 'NUT-BOLT-SET', unit: 'pcs' },
+    { name: 'Bar Saddle', sku: 'BAR-SADDLE', unit: 'pcs' },
+    { name: 'Fastener', sku: 'FASTENER', unit: 'pcs' },
+    { name: 'Mid Clamp', sku: 'MID-CLAMP', unit: 'pcs' },
+    { name: 'End Clamp', sku: 'END-CLAMP', unit: 'pcs' },
+    { name: 'AC Cable', sku: 'CABLE-AC', unit: 'm' },
+    { name: 'DC Cable', sku: 'CABLE-DC', unit: 'm' },
+    { name: 'Earthing Wire', sku: 'EARTH-WIRE', unit: 'm' },
+    { name: 'PVC Pipe', sku: 'PVC-PIPE', unit: 'm' },
+    { name: 'Flexible Pipe', sku: 'FLEX-PIPE', unit: 'm' },
+    { name: 'Saddle Clamp', sku: 'SADDLE-CLAMP', unit: 'pcs' },
+    { name: 'Cable Tie', sku: 'CABLE-TIE', unit: 'pcs' },
+    { name: 'Insulation Tape', sku: 'INS-TAPE', unit: 'pcs' },
+  ];
+  const have = new Set(items.map((it) => it.sku?.toLowerCase()));
+  let added = false;
+  desired.forEach((d) => {
+    if (!have.has(d.sku.toLowerCase())) {
+      items.push({ id: `i${Date.now()}${Math.floor(Math.random()*1000)}`, name: d.name, sku: d.sku, unit: d.unit, stock: 0, minStock: d.unit === 'm' ? 100 : 20 });
+      added = true;
+    }
+  });
+  if (added) saveData();
+}
+
+seedInventoryDefaults();
+
+// Replace generic inverter with brand-specific 3–5 kW models (idempotent)
+function seedInverterModels() {
+  // Remove legacy generic inverter if present
+  const legacyIdx = items.findIndex((it) => (it.sku === 'INV-5K') || (it.name && it.name.toLowerCase() === 'string inverter 5kw'));
+  if (legacyIdx !== -1) {
+    items.splice(legacyIdx, 1);
+  }
+
+  const brands = [
+    { brand: 'Solax', code: 'SOLAX' },
+    { brand: 'Havells', code: 'HAVELLS' },
+    { brand: 'Growatt', code: 'GROWATT' },
+    { brand: 'Luminous', code: 'LUMINOUS' },
+  ];
+  const powers = [
+    { label: '3kW', code: '3K' },
+    { label: '4kW', code: '4K' },
+    { label: '5kW', code: '5K' },
+  ];
+  const haveSku = new Set(items.map((it) => it.sku?.toUpperCase()));
+  let changed = legacyIdx !== -1;
+  brands.forEach((b) => {
+    powers.forEach((p) => {
+      const sku = `INV-${b.code}-${p.code}`;
+      if (!haveSku.has(sku)) {
+        items.push({ id: `i${Date.now()}${Math.floor(Math.random()*1000)}`, name: `${b.brand} Inverter ${p.label}`, sku, unit: 'unit', stock: 0, minStock: 2 });
+        changed = true;
+      }
+    });
+  });
+  if (changed) saveData();
+}
+
+seedInverterModels();
+
+// Seed branded solar panel models (idempotent)
+function seedPanelModels() {
+  const brands = [
+    { brand: 'Adani', code: 'ADANI' },
+    { brand: 'Premier', code: 'PREMIER' },
+    { brand: 'Tata', code: 'TATA' },
+    { brand: 'Waaree', code: 'WAAREE' },
+  ];
+  const wattages = [500, 540];
+  const haveSku = new Set(items.map((it) => it.sku?.toUpperCase()));
+  let changed = false;
+  brands.forEach((b) => {
+    wattages.forEach((w) => {
+      const sku = `PV-${b.code}-${w}W`;
+      if (!haveSku.has(sku)) {
+        items.push({ id: `i${Date.now()}${Math.floor(Math.random()*1000)}`, name: `${b.brand} Solar Panel ${w}W`, sku, unit: 'pcs', stock: 0, minStock: 20 });
+        changed = true;
+      }
+    });
+  });
+  if (changed) saveData();
+}
+
+seedPanelModels();
+
+// Rate limiter for login (very basic, in-memory)
+const loginAttempts = new Map(); // key: ip, value: { count, ts }
+function loginRateLimit(req, res, next) {
+  const ip = req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || req.socket.remoteAddress || 'local';
+  const now = Date.now();
+  const windowMs = 5 * 60 * 1000; // 5 minutes
+  const maxAttempts = 20;
+  const rec = loginAttempts.get(ip) || { count: 0, ts: now };
+  if (now - rec.ts > windowMs) {
+    rec.count = 0;
+    rec.ts = now;
+  }
+  rec.count += 1;
+  loginAttempts.set(ip, rec);
+  if (rec.count > maxAttempts) {
+    return res.status(429).json({ message: 'Too many login attempts. Please try again later.' });
+  }
+  next();
+}
+
 function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization || '';
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
@@ -508,7 +704,7 @@ app.get('/', (req, res) => {
   res.json({ ok: true, name: 'Prefuel Energy API' });
 });
 
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', loginRateLimit, (req, res) => {
   const { email, password } = req.body || {};
   const user = users.find((u) => u.email === email);
   if (!user || user.password !== password) {
@@ -588,8 +784,12 @@ app.get('/api/leads', authMiddleware, (req, res) => {
 });
 
 app.post('/api/leads', authMiddleware, (req, res) => {
-  const { name, phone, email, source = 'organic', status = 'new', projectSizeKw = 0, acquisition = null, owner = null } = req.body || {};
+  let { name, phone, email, source = 'organic', status = 'new', projectSizeKw = 0, acquisition = null, owner = null } = req.body || {};
   if (!name) return res.status(400).json({ message: 'Name is required' });
+  name = String(name).slice(0, 100);
+  phone = phone ? String(phone).slice(0, 20) : '';
+  email = email ? String(email).slice(0, 100) : '';
+  projectSizeKw = toPosNumber(projectSizeKw, 0);
   const lead = {
     id: `l${Date.now()}`,
     name, phone, email, source, status, projectSizeKw,
@@ -598,6 +798,7 @@ app.post('/api/leads', authMiddleware, (req, res) => {
     owner: owner || null,
   };
   leadsData.unshift(lead);
+  saveData();
   res.json({ lead });
 });
 
@@ -605,13 +806,15 @@ app.put('/api/leads/:id', authMiddleware, (req, res) => {
   const idx = leadsData.findIndex((l) => l.id === req.params.id);
   if (idx === -1) return res.status(404).json({ message: 'Lead not found' });
   leadsData[idx] = { ...leadsData[idx], ...req.body };
+  saveData();
   res.json({ lead: leadsData[idx] });
 });
 
-app.delete('/api/leads/:id', authMiddleware, (req, res) => {
+app.delete('/api/leads/:id', authMiddleware, requireRole('admin'), (req, res) => {
   const idx = leadsData.findIndex((l) => l.id === req.params.id);
   if (idx === -1) return res.status(404).json({ message: 'Lead not found' });
   const [removed] = leadsData.splice(idx, 1);
+  saveData();
   res.json({ removed });
 });
 
@@ -621,10 +824,17 @@ app.get('/api/quotes', authMiddleware, (req, res) => {
 });
 
 app.post('/api/quotes', authMiddleware, (req, res) => {
-  const { leadId, projectId = null, items: quoteItems = [], status = 'draft' } = req.body || {};
-  const amount = quoteItems.reduce((sum, it) => sum + (Number(it.price) || 0) * (Number(it.qty) || 0), 0);
+  const { leadId, projectId = null, items: quoteItems = [], status = 'draft', name = null } = req.body || {};
+  const safeItems = (Array.isArray(quoteItems)? quoteItems: []).map((it)=> ({
+    ...it,
+    qty: toPosNumber(it.qty, 0),
+    price: toPosNumber(it.price, 0),
+  }))
+  const amount = safeItems.reduce((sum, it) => sum + it.price * it.qty, 0);
   const q = { id: `q${Date.now()}`, leadId, projectId, items: quoteItems, status, amount, createdAt: new Date().toISOString() };
+  if (name) q.name = String(name).slice(0, 120);
   quotes.unshift(q);
+  saveData();
   res.json({ quote: q });
 });
 
@@ -640,12 +850,13 @@ app.post('/api/quotes/:id/convert', authMiddleware, (req, res) => {
   const q = quotes.find((qq) => qq.id === req.params.id);
   if (!q) return res.status(404).json({ message: 'Quote not found' });
   const customerName = req.body?.customerName || `Project from ${q.leadId || 'quote'}`;
+  const capacityKw = toPosNumber(req.body?.capacityKw, 0);
   const newProject = {
     id: `p${Date.now()}`,
     customerName,
     siteAddress: req.body?.siteAddress || 'To Assign',
     scheme: 'Rooftop Solar Subsidy Scheme (India)',
-    capacityKw: Number(req.body?.capacityKw || 0),
+    capacityKw,
     status: 'not_started',
     installation: {
       installedItems: [],
@@ -664,6 +875,7 @@ app.post('/api/quotes/:id/convert', authMiddleware, (req, res) => {
   projects.unshift(newProject);
   q.status = 'accepted';
   q.projectId = newProject.id;
+  saveData();
   res.json({ project: newProject, quote: q });
 });
 
@@ -673,11 +885,37 @@ app.get('/api/items', authMiddleware, (req, res) => {
 });
 
 app.post('/api/items', authMiddleware, (req, res) => {
-  const { name, sku, unit = 'pcs', stock = 0, minStock = 0 } = req.body || {};
+  let { name, sku, unit = 'pcs', stock = 0, minStock = 0 } = req.body || {};
   if (!name || !sku) return res.status(400).json({ message: 'name and sku required' });
-  const it = { id: `i${Date.now()}`, name, sku, unit, stock: Number(stock)||0, minStock: Number(minStock)||0 };
+  name = String(name).slice(0, 120);
+  sku = String(sku).slice(0, 60);
+  const it = { id: `i${Date.now()}`, name, sku, unit, stock: toPosNumber(stock, 0), minStock: toPosNumber(minStock, 0) };
   items.push(it);
+  saveData();
   res.json({ item: it });
+});
+
+// Update item details
+app.put('/api/items/:id', authMiddleware, (req, res) => {
+  const idx = items.findIndex((i) => i.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ message: 'Item not found' });
+  const patch = { ...req.body };
+  if (patch.name) patch.name = String(patch.name).slice(0, 120);
+  if (patch.sku) patch.sku = String(patch.sku).slice(0, 60);
+  if (patch.stock !== undefined) patch.stock = toPosNumber(patch.stock, items[idx].stock || 0);
+  if (patch.minStock !== undefined) patch.minStock = toPosNumber(patch.minStock, items[idx].minStock || 0);
+  items[idx] = { ...items[idx], ...patch };
+  saveData();
+  res.json({ item: items[idx] });
+});
+
+// Delete item (admin only)
+app.delete('/api/items/:id', authMiddleware, requireRole('admin'), (req, res) => {
+  const idx = items.findIndex((i) => i.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ message: 'Item not found' });
+  const [removed] = items.splice(idx, 1);
+  saveData();
+  res.json({ removed });
 });
 
 function calculatePoTotals(po) {
@@ -696,16 +934,18 @@ app.get('/api/purchase-orders', authMiddleware, (req, res) => {
 });
 
 app.post('/api/purchase-orders', authMiddleware, (req, res) => {
-  const { supplier = 'Vendor', lines = [], status = 'ordered' } = req.body || {};
-  const normalized = lines.map((ln) => ({
+  let { supplier = 'Vendor', lines = [], status = 'ordered' } = req.body || {};
+  supplier = String(supplier).slice(0, 160);
+  const normalized = (Array.isArray(lines)? lines: []).map((ln) => ({
     itemId: ln.itemId,
-    qty: Number(ln.qty)||0,
-    unitPrice: Number(ln.unitPrice)||0,
-    taxPercent: Number(ln.taxPercent)||0,
+    qty: toPosNumber(ln.qty, 0),
+    unitPrice: toPosNumber(ln.unitPrice, 0),
+    taxPercent: clampTax(ln.taxPercent),
   }))
   const po = { id: `po${Date.now()}`, supplier, items: normalized, status, createdAt: new Date().toISOString() };
   po.totals = calculatePoTotals(po)
   purchaseOrders.unshift(po);
+  saveData();
   res.json({ purchaseOrder: po });
 });
 
@@ -719,6 +959,7 @@ app.post('/api/purchase-orders/:id/receive', authMiddleware, (req, res) => {
     if (it) it.stock += Number(line.qty) || 0;
   });
   po.status = 'received';
+  saveData();
   res.json({ purchaseOrder: po, items });
 });
 
@@ -732,8 +973,10 @@ app.get('/api/documents', authMiddleware, (req, res) => {
 app.post('/api/documents', authMiddleware, (req, res) => {
   const { entityType, entityId, title, url } = req.body || {};
   if (!entityType || !entityId || !url) return res.status(400).json({ message: 'entityType, entityId, url required' });
+  if (!isSafeHttpUrl(url)) return res.status(400).json({ message: 'Invalid URL' });
   const doc = { id: `d${Date.now()}`, entityType, entityId, title: title||'Attachment', url, uploadedAt: new Date().toISOString() };
   documents.unshift(doc);
+  saveData();
   res.json({ document: doc });
 });
 
@@ -749,6 +992,7 @@ app.post('/api/tasks', authMiddleware, (req, res) => {
   if (!title) return res.status(400).json({ message: 'title required' });
   const task = { id: `t${Date.now()}`, projectId: projectId||null, title, assignee, dueDate, status };
   tasks.unshift(task);
+  saveData();
   res.json({ task });
 });
 
@@ -756,6 +1000,7 @@ app.put('/api/tasks/:id', authMiddleware, (req, res) => {
   const idx = tasks.findIndex((t) => t.id === req.params.id);
   if (idx === -1) return res.status(404).json({ message: 'Task not found' });
   tasks[idx] = { ...tasks[idx], ...req.body };
+  saveData();
   res.json({ task: tasks[idx] });
 });
 
@@ -767,6 +1012,7 @@ app.get('/api/attendance', authMiddleware, (req, res) => {
 app.post('/api/attendance', authMiddleware, (req, res) => {
   const { date, present = 0, absent = 0 } = req.body || {};
   attendanceRecord = { date, present: Number(present)||0, absent: Number(absent)||0 };
+  saveData();
   res.json({ attendance: attendanceRecord });
 });
 
@@ -777,18 +1023,20 @@ app.get('/api/announcements', authMiddleware, (req, res) => {
   res.json({ announcements: list })
 })
 
-app.post('/api/announcements', authMiddleware, (req, res) => {
+app.post('/api/announcements', authMiddleware, requireRole('admin'), (req, res) => {
   const { title, body, audience = 'all', startsAt = null, endsAt = null, active = true } = req.body || {}
   if (!title || !body) return res.status(400).json({ message: 'title and body required' })
   const a = { id: `a${Date.now()}`, title, body, audience, startsAt, endsAt, active, createdBy: req.user?.email||'admin' }
   announcements.unshift(a)
+  saveData();
   res.json({ announcement: a })
 })
 
-app.put('/api/announcements/:id', authMiddleware, (req, res) => {
+app.put('/api/announcements/:id', authMiddleware, requireRole('admin'), (req, res) => {
   const idx = announcements.findIndex((x)=> x.id === req.params.id)
   if (idx === -1) return res.status(404).json({ message: 'Announcement not found' })
   announcements[idx] = { ...announcements[idx], ...req.body }
+  saveData();
   res.json({ announcement: announcements[idx] })
 })
 
@@ -804,6 +1052,7 @@ app.post('/api/service-tickets', authMiddleware, (req, res) => {
   if (!title) return res.status(400).json({ message: 'title required' });
   const ticket = { id: `svc${Date.now()}`, projectId, leadId, title, priority, status: 'open', assignedTo, createdAt: new Date().toISOString() };
   serviceTickets.unshift(ticket);
+  saveData();
   res.json({ ticket });
 });
 
@@ -811,6 +1060,7 @@ app.put('/api/service-tickets/:id', authMiddleware, (req, res) => {
   const idx = serviceTickets.findIndex((t) => t.id === req.params.id);
   if (idx === -1) return res.status(404).json({ message: 'Ticket not found' });
   serviceTickets[idx] = { ...serviceTickets[idx], ...req.body };
+  saveData();
   res.json({ ticket: serviceTickets[idx] });
 });
 
@@ -834,9 +1084,9 @@ app.post('/api/invoices', authMiddleware, (req, res) => {
   const { quoteId = null, customerName = 'Customer', amount = 0, status = 'draft', items = null } = req.body || {};
   let invItems = Array.isArray(items) ? items.map((it)=> ({
     description: it.description || it.name || 'Item',
-    qty: Number(it.qty)||0,
-    price: Number(it.price)||0,
-    taxPercent: Number(it.taxPercent)||0,
+    qty: toPosNumber(it.qty, 0),
+    price: toPosNumber(it.price, 0),
+    taxPercent: clampTax(it.taxPercent),
   })) : null
 
   // If items not provided but quoteId present, try deriving from quote
@@ -852,6 +1102,7 @@ app.post('/api/invoices', authMiddleware, (req, res) => {
   // keep a legacy amount mirror for older clients if needed
   inv.amount = totals.grandTotal
   invoices.unshift(inv);
+  saveData();
   res.json({ invoice: { ...inv, totals } });
 });
 
@@ -859,6 +1110,7 @@ app.put('/api/invoices/:id', authMiddleware, (req, res) => {
   const idx = invoices.findIndex((i) => i.id === req.params.id);
   if (idx === -1) return res.status(404).json({ message: 'Invoice not found' });
   invoices[idx] = { ...invoices[idx], ...req.body };
+  saveData();
   res.json({ invoice: invoices[idx] });
 });
 
