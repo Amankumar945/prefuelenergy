@@ -484,6 +484,11 @@ const announcements = [
   { id: 'a1', title: 'October Incentive', body: 'Complete 10 sites in October to win a smartphone!', audience: 'all', startsAt: '2025-10-01', endsAt: '2025-10-31', active: true, createdBy: 'admin' },
 ];
 
+// Audit logs (simple)
+const auditLogs = [
+  // { id, ts, user, entity, action, entityId, details }
+];
+
 // Helpers
 function generateToken(user) {
   return jwt.sign(
@@ -566,6 +571,7 @@ function loadData() {
     if (Array.isArray(parsed.serviceTickets)) { serviceTickets.splice(0, serviceTickets.length, ...parsed.serviceTickets); }
     if (Array.isArray(parsed.invoices)) { invoices.splice(0, invoices.length, ...parsed.invoices); }
     if (Array.isArray(parsed.announcements)) { announcements.splice(0, announcements.length, ...parsed.announcements); }
+    if (Array.isArray(parsed.auditLogs)) { auditLogs.splice(0, auditLogs.length, ...parsed.auditLogs); }
     if (parsed.leads && typeof parsed.leads === 'object') { Object.assign(leads, parsed.leads); }
     if (Array.isArray(parsed.teleCallers)) { teleCallers.splice(0, teleCallers.length, ...parsed.teleCallers); }
     if (parsed.conversions && typeof parsed.conversions === 'object') { Object.assign(conversions, parsed.conversions); }
@@ -665,6 +671,32 @@ function seedPanelModels() {
 }
 
 seedPanelModels();
+
+// Audit helper
+function logAudit(req, entity, action, entityId, details) {
+  try {
+    const entry = {
+      id: `al${Date.now()}${Math.floor(Math.random()*1000)}`,
+      ts: new Date().toISOString(),
+      user: req?.user?.email || 'system',
+      entity,
+      action,
+      entityId,
+      details,
+    };
+    auditLogs.unshift(entry);
+    // Keep last 2000 entries to limit file size
+    if (auditLogs.length > 2000) auditLogs.length = 2000;
+  } catch (_) {}
+}
+
+function paginate(arr, page, size) {
+  const p = Math.max(1, Number(page) || 0);
+  const s = Math.max(1, Math.min(200, Number(size) || 20));
+  const start = (p - 1) * s;
+  const slice = arr.slice(start, start + s);
+  return { data: slice, page: p, size: s, total: arr.length };
+}
 
 // Rate limiter for login (very basic, in-memory)
 const loginAttempts = new Map(); // key: ip, value: { count, ts }
@@ -881,6 +913,11 @@ app.post('/api/quotes/:id/convert', authMiddleware, (req, res) => {
 
 // Inventory and procurement
 app.get('/api/items', authMiddleware, (req, res) => {
+  const { page, size } = req.query || {};
+  if (page || size) {
+    const result = paginate(items, page, size);
+    return res.json({ items: result.data, page: result.page, size: result.size, total: result.total });
+  }
   res.json({ items });
 });
 
@@ -892,6 +929,7 @@ app.post('/api/items', authMiddleware, (req, res) => {
   const it = { id: `i${Date.now()}`, name, sku, unit, stock: toPosNumber(stock, 0), minStock: toPosNumber(minStock, 0) };
   items.push(it);
   saveData();
+  logAudit(req, 'item', 'create', it.id, { name: it.name, sku: it.sku });
   res.json({ item: it });
 });
 
@@ -906,6 +944,7 @@ app.put('/api/items/:id', authMiddleware, (req, res) => {
   if (patch.minStock !== undefined) patch.minStock = toPosNumber(patch.minStock, items[idx].minStock || 0);
   items[idx] = { ...items[idx], ...patch };
   saveData();
+  logAudit(req, 'item', 'update', items[idx].id, patch);
   res.json({ item: items[idx] });
 });
 
@@ -915,6 +954,7 @@ app.delete('/api/items/:id', authMiddleware, requireRole('admin'), (req, res) =>
   if (idx === -1) return res.status(404).json({ message: 'Item not found' });
   const [removed] = items.splice(idx, 1);
   saveData();
+  logAudit(req, 'item', 'delete', removed.id, { sku: removed.sku });
   res.json({ removed });
 });
 
@@ -960,6 +1000,7 @@ app.post('/api/purchase-orders/:id/receive', authMiddleware, (req, res) => {
   });
   po.status = 'received';
   saveData();
+  logAudit(req, 'purchaseOrder', 'receive', po.id, { lines: po.items?.length||0 });
   res.json({ purchaseOrder: po, items });
 });
 
@@ -993,6 +1034,7 @@ app.post('/api/tasks', authMiddleware, (req, res) => {
   const task = { id: `t${Date.now()}`, projectId: projectId||null, title, assignee, dueDate, status };
   tasks.unshift(task);
   saveData();
+  logAudit(req, 'task', 'create', task.id, { projectId: task.projectId });
   res.json({ task });
 });
 
@@ -1001,6 +1043,7 @@ app.put('/api/tasks/:id', authMiddleware, (req, res) => {
   if (idx === -1) return res.status(404).json({ message: 'Task not found' });
   tasks[idx] = { ...tasks[idx], ...req.body };
   saveData();
+  logAudit(req, 'task', 'update', tasks[idx].id, req.body);
   res.json({ task: tasks[idx] });
 });
 
