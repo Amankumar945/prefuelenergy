@@ -1024,7 +1024,12 @@
         }
       ],
       "status": "sent",
-      "createdAt": "2025-10-03T10:00:00Z"
+      "createdAt": "2025-10-03T10:00:00Z",
+      "totals": {
+        "subtotal": 92500,
+        "tax": 13530,
+        "grandTotal": 106030
+      }
     },
     {
       "id": "inv1002",
@@ -1051,7 +1056,12 @@
         }
       ],
       "status": "paid",
-      "createdAt": "2025-09-12T15:30:00Z"
+      "createdAt": "2025-09-12T15:30:00Z",
+      "totals": {
+        "subtotal": 233000,
+        "tax": 32640,
+        "grandTotal": 265640
+      }
     }
   ],
   "announcements": [

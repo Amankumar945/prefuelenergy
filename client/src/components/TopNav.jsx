@@ -15,12 +15,15 @@ export default function TopNav() {
 
   return (
     <header className="bg-white/80 backdrop-blur border-b border-gray-100">
-      <div className="max-w-7xl mx-auto px-4 min-h-16 py-2 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="max-w-7xl mx-auto px-4 min-h-24 py-3 flex items-start justify-between relative">
+        <div className="flex items-start gap-3">
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-brand to-solar.amber animate-float" />
-          <div className="font-semibold">Green Tree • Prefuel Energy</div>
+          <div className="flex flex-col leading-tight">
+            <div className="font-semibold">Green Tree • Prefuel Energy</div>
+            <div className="mt-0.5"><DigitalClock /></div>
+          </div>
         </div>
-        <nav className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+        <nav className="w-full flex flex-wrap items-center gap-x-3 gap-y-1 text-sm pr-44">
           {(user?.role === 'admin' || user?.role === 'staff') && (
             <Link
               to="/"
@@ -53,6 +56,12 @@ export default function TopNav() {
               Projects
             </Link>
           )}
+          <Link
+            to="/reports"
+            className={`px-3 py-1.5 rounded-lg hover:bg-gray-50 ${isActive('/reports') ? 'text-brand font-medium' : 'text-gray-700'}`}
+          >
+            Reports
+          </Link>
           <Link
             to="/announcements"
             className={`px-3 py-1.5 rounded-lg hover:bg-gray-50 ${isActive('/announcements') ? 'text-brand font-medium' : 'text-gray-700'}`}
@@ -100,7 +109,7 @@ export default function TopNav() {
             </Link>
           )}
           <span className="mx-2 text-gray-200">|</span>
-          <div className="flex flex-col items-start gap-1">
+          <div className="absolute right-4 top-3 flex flex-col items-end gap-1 shrink-0 whitespace-nowrap">
             <span className="hidden sm:inline-flex items-center gap-2 text-gray-700">
               <span className="px-2 py-0.5 rounded-md bg-gray-100 border text-xs">
                 <span className="font-medium">{user?.name || 'User'}</span>
@@ -112,7 +121,6 @@ export default function TopNav() {
               Logout
             </button>
           </div>
-          <DigitalClock />
         </nav>
       </div>
     </header>

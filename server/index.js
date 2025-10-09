@@ -783,6 +783,101 @@ app.get('/api/stats', authMiddleware, (req, res) => {
   res.json(data);
 });
 
+// Reports summary (KPIs and simple trends)
+app.get('/api/reports/summary', authMiddleware, (req, res) => {
+  const days = Math.max(1, Math.min(180, Number(req.query.days) || 30));
+  const now = new Date();
+  const startTs = now.getTime() - days * 24 * 60 * 60 * 1000;
+  function dayKey(d) {
+    const dt = new Date(d);
+    if (Number.isNaN(dt.getTime())) return null;
+    return dt.toISOString().slice(0,10);
+  }
+
+  // Leads KPIs
+  const leadStatusCounts = leadsData.reduce((acc, l) => { acc[l.status] = (acc[l.status]||0)+1; return acc; }, {});
+  const leadTrend = {};
+  leadsData.forEach((l) => {
+    const k = dayKey(l.createdAt);
+    const ts = k ? new Date(k).getTime() : 0;
+    if (k && ts >= startTs) leadTrend[k] = (leadTrend[k]||0) + 1;
+  });
+
+  // Projects KPIs
+  const projCounts = {
+    working: projects.filter(p=>p.status==='working').length,
+    completed: projects.filter(p=>p.status==='completed').length,
+    not_started: projects.filter(p=>p.status==='not_started').length,
+  };
+  const projectTrend = {};
+  projects.forEach((p)=>{
+    const createdLike = p.createdAt || p.installation?.lastUpdated;
+    const k = createdLike ? dayKey(createdLike) : null;
+    const ts = k ? new Date(k).getTime() : 0;
+    if (k && ts >= startTs) projectTrend[k] = (projectTrend[k]||0)+1;
+  });
+
+  // POs
+  const openPOs = purchaseOrders.filter(po=>po.status!=='received').length;
+  const poTrend = {};
+  purchaseOrders.forEach((po)=>{
+    const k = dayKey(po.createdAt);
+    const ts = k ? new Date(k).getTime() : 0;
+    if (k && ts >= startTs) poTrend[k] = (poTrend[k]||0)+1;
+  });
+
+  // Invoices
+  function ensureInvTotals(inv) {
+    if (!inv.totals) {
+      inv.totals = calculateInvoiceTotals(inv);
+    }
+    return inv.totals;
+  }
+  let invTotal = 0, invPaid = 0;
+  invoices.forEach((inv)=>{
+    const t = ensureInvTotals(inv);
+    invTotal += t.grandTotal || 0;
+    if (inv.status === 'paid') invPaid += t.grandTotal || 0;
+  });
+  const invOutstanding = Math.max(0, invTotal - invPaid);
+  const invoiceTrend = {};
+  invoices.forEach((inv)=>{
+    const k = dayKey(inv.createdAt);
+    const ts = k ? new Date(k).getTime() : 0;
+    const t = ensureInvTotals(inv);
+    if (k && ts >= startTs) invoiceTrend[k] = (invoiceTrend[k]||0) + (t.grandTotal||0);
+  });
+
+  // Inventory
+  const lowStock = items.filter((it)=> it.stock <= it.minStock).length;
+
+  // Compose response
+  const summary = {
+    leads: {
+      total: leadsData.length,
+      byStatus: leadStatusCounts,
+    },
+    projects: projCounts,
+    purchaseOrders: { open: openPOs, total: purchaseOrders.length },
+    invoices: { totalAmount: invTotal, paidAmount: invPaid, outstandingAmount: invOutstanding },
+    inventory: { items: items.length, lowStock },
+  };
+
+  function toSeries(mapObj) {
+    // Return sorted array of { date, value }
+    return Object.keys(mapObj).sort().map((k)=> ({ date: k, value: mapObj[k] }));
+  }
+
+  const trends = {
+    leadsCreated: toSeries(leadTrend),
+    projectsCreated: toSeries(projectTrend),
+    purchaseOrdersCreated: toSeries(poTrend),
+    invoicesAmount: toSeries(invoiceTrend),
+  };
+
+  res.json({ days, summary, trends });
+});
+
 app.get('/api/projects', authMiddleware, (req, res) => {
   res.json({ projects });
 });

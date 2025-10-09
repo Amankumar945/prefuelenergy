@@ -10,7 +10,9 @@ export default function InventoryPage() {
   const [lowOnly, setLowOnly] = useState(false)
   const [page, setPage] = useState(1)
   const pageSize = 9
-  const [form, setForm] = useState({ name: '', sku: '', unit: 'pcs', stock: 0, minStock: 0 })
+  const [form, setForm] = useState({ name: '', sku: '', unit: 'pcs', stock: '', minStock: '' })
+  const [adding, setAdding] = useState(false)
+  const [addError, setAddError] = useState('')
   const [editOpen, setEditOpen] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [editForm, setEditForm] = useState({ name: '', sku: '', unit: 'pcs', stock: 0, minStock: 0 })
@@ -21,12 +23,28 @@ export default function InventoryPage() {
 
   async function addItem(e) {
     e.preventDefault()
-    if (!form.name.trim() || !form.sku.trim()) return
-    const res = await api.post('/api/items', {
-      name: form.name.trim(), sku: form.sku.trim(), unit: form.unit, stock: Number(form.stock)||0, minStock: Number(form.minStock)||0
-    })
-    setItems((prev)=>[...prev, res.data.item])
-    setForm({ name: '', sku: '', unit: 'pcs', stock: 0, minStock: 0 })
+    setAddError('')
+    if (!form.name.trim() || !form.sku.trim()) {
+      setAddError('Please enter item name and SKU')
+      return
+    }
+    try {
+      setAdding(true)
+      const res = await api.post('/api/items', {
+        name: form.name.trim(),
+        sku: form.sku.trim(),
+        unit: form.unit,
+        stock: Number(form.stock)||0,
+        minStock: Number(form.minStock)||0
+      })
+      setItems((prev)=>[...prev, res.data.item])
+      setForm({ name: '', sku: '', unit: 'pcs', stock: '', minStock: '' })
+      setPage(1)
+    } catch (err) {
+      setAddError(err?.response?.data?.message || 'Failed to add item')
+    } finally {
+      setAdding(false)
+    }
   }
 
   const filtered = items.filter((it)=> (
@@ -82,11 +100,13 @@ export default function InventoryPage() {
               <option>pcs</option>
               <option>unit</option>
               <option>set</option>
+              <option>m</option>
             </select>
             <input className="rounded-lg border px-3 py-2 sm:col-span-1" type="number" min="0" placeholder="Stock" value={form.stock} onChange={(e)=>setForm((s)=>({...s,stock:e.target.value}))} />
             <input className="rounded-lg border px-3 py-2 sm:col-span-1" type="number" min="0" placeholder="Min" value={form.minStock} onChange={(e)=>setForm((s)=>({...s,minStock:e.target.value}))} />
-            <button className="sm:col-span-6 rounded-lg bg-brand text-white px-3 py-2 hover:bg-brand-dark">Add Item</button>
+            <button disabled={adding} className="sm:col-span-6 rounded-lg bg-brand text-white px-3 py-2 hover:bg-brand-dark disabled:opacity-60">{adding ? 'Adding…' : 'Add Item'}</button>
           </form>
+          {addError && <div className="mt-2 text-sm text-red-600">{addError}</div>}
         </section>
 
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
