@@ -787,7 +787,10 @@ app.get('/api/stats', authMiddleware, (req, res) => {
 app.get('/api/reports/summary', authMiddleware, (req, res) => {
   const days = Math.max(1, Math.min(180, Number(req.query.days) || 30));
   const now = new Date();
-  const startTs = now.getTime() - days * 24 * 60 * 60 * 1000;
+  const qFrom = req.query.from ? new Date(req.query.from) : null;
+  const qTo = req.query.to ? new Date(req.query.to) : null;
+  const endTs = qTo && !Number.isNaN(qTo.getTime()) ? qTo.getTime() : now.getTime();
+  const startTs = qFrom && !Number.isNaN(qFrom.getTime()) ? qFrom.getTime() : (endTs - days * 24 * 60 * 60 * 1000);
   function dayKey(d) {
     const dt = new Date(d);
     if (Number.isNaN(dt.getTime())) return null;
@@ -800,7 +803,17 @@ app.get('/api/reports/summary', authMiddleware, (req, res) => {
   leadsData.forEach((l) => {
     const k = dayKey(l.createdAt);
     const ts = k ? new Date(k).getTime() : 0;
-    if (k && ts >= startTs) leadTrend[k] = (leadTrend[k]||0) + 1;
+    if (k && ts >= startTs && ts <= endTs) leadTrend[k] = (leadTrend[k]||0) + 1;
+  });
+  // Conversion rate by source/channel
+  const bySource = {};
+  leadsData.forEach((l)=>{
+    const src = l.acquisition?.sourceType || l.source || 'unknown';
+    const ch = l.acquisition?.sourceChannel || '—';
+    const key = `${src}::${ch}`;
+    if (!bySource[key]) bySource[key] = { source: src, channel: ch, total: 0, won: 0 };
+    bySource[key].total += 1;
+    if (l.status === 'won') bySource[key].won += 1;
   });
 
   // Projects KPIs
@@ -814,8 +827,17 @@ app.get('/api/reports/summary', authMiddleware, (req, res) => {
     const createdLike = p.createdAt || p.installation?.lastUpdated;
     const k = createdLike ? dayKey(createdLike) : null;
     const ts = k ? new Date(k).getTime() : 0;
-    if (k && ts >= startTs) projectTrend[k] = (projectTrend[k]||0)+1;
+    if (k && ts >= startTs && ts <= endTs) projectTrend[k] = (projectTrend[k]||0)+1;
   });
+  // Project cycle time (rough): days between first step done and last done
+  function projectCycleDays(p) {
+    const steps = p.installation?.steps||[];
+    const done = steps.filter(s=> s.status==='done' && s.date).map(s=> new Date(s.date).getTime()).sort((a,b)=>a-b);
+    if (done.length>=2) return Math.round((done[done.length-1]-done[0])/(24*60*60*1000));
+    return null;
+  }
+  const cycleValues = projects.map(projectCycleDays).filter((v)=> Number.isFinite(v));
+  const avgProjectCycle = cycleValues.length? Math.round(cycleValues.reduce((a,b)=>a+b,0)/cycleValues.length): null;
 
   // POs
   const openPOs = purchaseOrders.filter(po=>po.status!=='received').length;
@@ -823,8 +845,11 @@ app.get('/api/reports/summary', authMiddleware, (req, res) => {
   purchaseOrders.forEach((po)=>{
     const k = dayKey(po.createdAt);
     const ts = k ? new Date(k).getTime() : 0;
-    if (k && ts >= startTs) poTrend[k] = (poTrend[k]||0)+1;
+    if (k && ts >= startTs && ts <= endTs) poTrend[k] = (poTrend[k]||0)+1;
   });
+  // On-time GRN rate (received within 7 days of creation as a simple proxy)
+  const onTimeGrn = purchaseOrders.filter(po=> po.status==='received' && po.receivedAt && ((new Date(po.receivedAt).getTime()-new Date(po.createdAt).getTime()) <= 7*24*60*60*1000)).length;
+  const totalGrn = purchaseOrders.filter(po=> po.status==='received').length;
 
   // Invoices
   function ensureInvTotals(inv) {
@@ -840,12 +865,24 @@ app.get('/api/reports/summary', authMiddleware, (req, res) => {
     if (inv.status === 'paid') invPaid += t.grandTotal || 0;
   });
   const invOutstanding = Math.max(0, invTotal - invPaid);
+  // Outstanding aging buckets
+  const aging = { '0-30': 0, '31-60': 0, '61-90': 0, '90+': 0 };
+  invoices.forEach((inv)=>{
+    const t = ensureInvTotals(inv);
+    if (inv.status !== 'paid') {
+      const daysOld = Math.floor((now.getTime()- new Date(inv.createdAt).getTime())/(24*60*60*1000));
+      if (daysOld<=30) aging['0-30'] += t.grandTotal||0;
+      else if (daysOld<=60) aging['31-60'] += t.grandTotal||0;
+      else if (daysOld<=90) aging['61-90'] += t.grandTotal||0;
+      else aging['90+'] += t.grandTotal||0;
+    }
+  });
   const invoiceTrend = {};
   invoices.forEach((inv)=>{
     const k = dayKey(inv.createdAt);
     const ts = k ? new Date(k).getTime() : 0;
     const t = ensureInvTotals(inv);
-    if (k && ts >= startTs) invoiceTrend[k] = (invoiceTrend[k]||0) + (t.grandTotal||0);
+    if (k && ts >= startTs && ts <= endTs) invoiceTrend[k] = (invoiceTrend[k]||0) + (t.grandTotal||0);
   });
 
   // Inventory
@@ -856,11 +893,13 @@ app.get('/api/reports/summary', authMiddleware, (req, res) => {
     leads: {
       total: leadsData.length,
       byStatus: leadStatusCounts,
+      conversionBySource: Object.values(bySource).map((r)=> ({ source: r.source, channel: r.channel, total: r.total, won: r.won, rate: r.total? Math.round((r.won/r.total)*100): 0 }))
     },
-    projects: projCounts,
-    purchaseOrders: { open: openPOs, total: purchaseOrders.length },
+    projects: { ...projCounts, avgCycleDays: avgProjectCycle },
+    purchaseOrders: { open: openPOs, total: purchaseOrders.length, onTimeGrnRate: totalGrn? Math.round((onTimeGrn/totalGrn)*100): null },
     invoices: { totalAmount: invTotal, paidAmount: invPaid, outstandingAmount: invOutstanding },
     inventory: { items: items.length, lowStock },
+    aging,
   };
 
   function toSeries(mapObj) {
@@ -875,7 +914,11 @@ app.get('/api/reports/summary', authMiddleware, (req, res) => {
     invoicesAmount: toSeries(invoiceTrend),
   };
 
-  res.json({ days, summary, trends });
+  const period = {
+    from: new Date(startTs).toISOString().slice(0,10),
+    to: new Date(endTs).toISOString().slice(0,10),
+  };
+  res.json({ days, period, summary, trends });
 });
 
 app.get('/api/projects', authMiddleware, (req, res) => {
@@ -1094,6 +1137,7 @@ app.post('/api/purchase-orders/:id/receive', authMiddleware, (req, res) => {
     if (it) it.stock += Number(line.qty) || 0;
   });
   po.status = 'received';
+  po.receivedAt = new Date().toISOString();
   saveData();
   logAudit(req, 'purchaseOrder', 'receive', po.id, { lines: po.items?.length||0 });
   res.json({ purchaseOrder: po, items });
