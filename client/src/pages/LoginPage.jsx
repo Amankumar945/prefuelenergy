@@ -12,6 +12,7 @@ export default function LoginPage() {
 
   const roleDefaults = {
     admin: { email: 'admin@prefuel', password: 'Admin@12345' },
+    staff: { email: 'staff@prefuel', password: 'Staff@12345' },
     hr: { email: 'hr@prefuel', password: 'Hr@2025!' },
   }
 
@@ -33,7 +34,6 @@ export default function LoginPage() {
       })
       localStorage.setItem('token', res.data.token)
       localStorage.setItem('user', JSON.stringify(res.data.user))
-      // Enforce one-user-at-a-time (overwrite any existing user)
       // After login, redirect by role
       const role = res.data.user.role
       if (role === 'hr') navigate('/hr')
@@ -57,7 +57,7 @@ export default function LoginPage() {
           </div>
         </div>
         {/* Role panels */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <button
             type="button"
             onClick={() => handleSelectRole('admin')}
@@ -66,6 +66,15 @@ export default function LoginPage() {
             <div className="text-sm text-gray-500">Login as</div>
             <div className="text-lg font-semibold">Admin</div>
             <div className="mt-2 text-xs text-gray-500">Access dashboard and projects</div>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSelectRole('staff')}
+            className={`rounded-2xl p-5 border transition hover:shadow ${selectedRole==='staff' ? 'border-sky-500 bg-sky-50' : 'border-gray-200 bg-gray-50'}`}
+          >
+            <div className="text-sm text-gray-500">Login as</div>
+            <div className="text-lg font-semibold">Staff</div>
+            <div className="mt-2 text-xs text-gray-500">Work on leads, quotes, inventory</div>
           </button>
           <button
             type="button"
@@ -104,10 +113,11 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full rounded-lg bg-brand text-white py-2 font-medium hover:bg-brand-dark transition disabled:opacity-60 shadow-sm"
           >
-            {loading ? 'Signing in…' : selectedRole === 'hr' ? 'Login as HR' : 'Login as Admin'}
+            {loading ? 'Signing in…' : selectedRole === 'hr' ? 'Login as HR' : selectedRole === 'staff' ? 'Login as Staff' : 'Login as Admin'}
           </button>
           <div className="text-xs text-gray-500 mt-2">
-            Use Admin: <b>admin@prefuel</b> / <b>Admin@12345</b> or Staff: <b>staff@prefuel</b> / <b>Staff@12345</b>
+            Admin: <b>admin@prefuel</b> / <b>Admin@12345</b>
+            <br />Staff: <b>staff@prefuel</b> / <b>Staff@12345</b>
             <br />HR: <b>hr@prefuel</b> / <b>Hr@2025!</b>
           </div>
         </form>

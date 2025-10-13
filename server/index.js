@@ -614,10 +614,12 @@ seedInventoryDefaults();
 
 // Replace generic inverter with brand-specific 3–5 kW models (idempotent)
 function seedInverterModels() {
-  // Remove legacy generic inverter if present
-  const legacyIdx = items.findIndex((it) => (it.sku === 'INV-5K') || (it.name && it.name.toLowerCase() === 'string inverter 5kw'));
-  if (legacyIdx !== -1) {
-    items.splice(legacyIdx, 1);
+  // Only remove legacy generic inverter if not referenced by any purchase order line
+  const legacyIdx = items.findIndex((it) => (it.sku === 'INV-5K') || (it.name && it.name.toLowerCase() === 'string inverter 5kw'))
+  const legacyId = legacyIdx !== -1 ? items[legacyIdx].id : null
+  const referencedByPO = legacyId ? purchaseOrders.some((po)=> (po.items||[]).some((ln)=> ln.itemId === legacyId)) : false
+  if (legacyIdx !== -1 && !referencedByPO) {
+    items.splice(legacyIdx, 1)
   }
 
   const brands = [
@@ -632,7 +634,7 @@ function seedInverterModels() {
     { label: '5kW', code: '5K' },
   ];
   const haveSku = new Set(items.map((it) => it.sku?.toUpperCase()));
-  let changed = legacyIdx !== -1;
+  let changed = (legacyIdx !== -1) && !referencedByPO;
   brands.forEach((b) => {
     powers.forEach((p) => {
       const sku = `INV-${b.code}-${p.code}`;
@@ -1205,7 +1207,11 @@ app.post('/api/attendance', authMiddleware, (req, res) => {
 // Announcements
 app.get('/api/announcements', authMiddleware, (req, res) => {
   const now = new Date().toISOString().slice(0,10)
-  const list = announcements.filter((a)=> (!a.startsAt || a.startsAt<=now) && (!a.endsAt || a.endsAt>=now))
+  // By default return only active announcements; allow override with ?includeInactive=true
+  const includeInactive = String(req.query.includeInactive||'false').toLowerCase() === 'true'
+  const list = announcements.filter((a)=> (
+    (!a.startsAt || a.startsAt<=now) && (!a.endsAt || a.endsAt>=now) && (includeInactive || a.active === true)
+  ))
   res.json({ announcements: list })
 })
 

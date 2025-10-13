@@ -6,6 +6,7 @@ import { api } from '../utils/api.js'
 export default function InvoicesPage() {
   const [quotes, setQuotes] = useState([])
   const [invoices, setInvoices] = useState([])
+  const [leads, setLeads] = useState([])
   const [form, setForm] = useState({ quoteId: '', customerName: '', amount: 0 })
   const money = (v)=> `₹ ${Number(v||0).toLocaleString('en-IN')}`
   const [editOpen, setEditOpen] = useState(false)
@@ -16,17 +17,22 @@ export default function InvoicesPage() {
     Promise.all([
       api.get('/api/quotes'),
       api.get('/api/invoices'),
-    ]).then(([q, inv]) => {
+      api.get('/api/leads'),
+    ]).then(([q, inv, l]) => {
       setQuotes(q.data.quotes||[])
       setInvoices(inv.data.invoices||[])
+      setLeads(l.data.leads||[])
     })
   }, [])
 
   useEffect(() => {
     if (!form.quoteId) return
     const q = quotes.find((x)=> x.id === form.quoteId)
-    if (q) setForm((f)=> ({...f, customerName: q.leadId || 'Customer', amount: q.amount }))
-  }, [form.quoteId])
+    if (q) {
+      const leadName = q.leadId ? (leads.find((l)=> l.id===q.leadId)?.name || q.leadId) : 'Customer'
+      setForm((f)=> ({...f, customerName: leadName, amount: q.amount }))
+    }
+  }, [form.quoteId, quotes, leads])
 
   async function createInvoice(e) {
     e.preventDefault()

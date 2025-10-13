@@ -17,6 +17,9 @@ export default function InventoryPage() {
   const [editingId, setEditingId] = useState(null)
   const [editForm, setEditForm] = useState({ name: '', sku: '', unit: 'pcs', stock: 0, minStock: 0 })
 
+  const user = JSON.parse(localStorage.getItem('user')||'{}')
+  const isAdmin = user?.role === 'admin'
+
   useEffect(() => {
     api.get('/api/items').then((res)=> setItems(res.data.items||[]))
   }, [])
@@ -55,6 +58,10 @@ export default function InventoryPage() {
   const paged = filtered.slice(start, start+pageSize)
 
   function openEdit(it) {
+    if (!isAdmin) {
+      alert('Only admin can edit items')
+      return
+    }
     setEditingId(it.id)
     setEditForm({ name: it.name, sku: it.sku, unit: it.unit, stock: it.stock, minStock: it.minStock })
     setEditOpen(true)
@@ -85,7 +92,11 @@ export default function InventoryPage() {
       setItems((prev)=> prev.map((x)=> x.id===editingId ? res.data.item : x))
       setEditOpen(false)
       setEditingId(null)
-    } catch (_) {}
+    } catch (err) {
+      const status = err?.response?.status
+      if (status === 403) alert('Only admin can edit items')
+      else alert(err?.response?.data?.message || 'Failed to save changes')
+    }
   }
 
   return (
@@ -143,7 +154,10 @@ export default function InventoryPage() {
                   try {
                     await api.delete(`/api/items/${it.id}`)
                     setItems((prev)=> prev.filter((x)=> x.id!==it.id))
-                  } catch (_) {}
+                  } catch (err) {
+                    const status = err?.response?.status
+                    if (status === 403) alert('Only admin can delete items')
+                  }
                 }} className="px-3 py-1.5 rounded-lg border text-sm text-red-600 hover:bg-red-50">Delete</button>
               </div>
             </div>
