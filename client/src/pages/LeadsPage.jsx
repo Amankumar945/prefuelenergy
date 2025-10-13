@@ -79,6 +79,21 @@ export default function LeadsPage() {
     return filtered.slice(start, start+pageSize)
   }, [filtered, page])
 
+  function exportCsv() {
+    const rows = [["Name","Email","Phone","Source","Status","kW","Owner","Owner Phone"]]
+    filtered.forEach((l)=> rows.push([
+      l.name||'', l.email||'', l.phone||'', l.acquisition?.sourceType||l.source||'', l.status||'', l.projectSizeKw||'', l.owner?.person?.name||'', l.owner?.person?.phone||''
+    ]))
+    const csv = rows.map(r=> r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n')
+    const blob = new Blob(["\uFEFF", csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'leads.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-brand/5 to-white">
       <TopNav />
@@ -102,7 +117,10 @@ export default function LeadsPage() {
               <option value="won">Won</option>
               <option value="lost">Lost</option>
             </select>
-            <div className="text-sm text-gray-600 flex items-center">Matches: {filtered.length}</div>
+            <div className="flex items-center justify-between sm:col-span-1">
+              <div className="text-sm text-gray-600">Matches: {filtered.length}</div>
+              <button onClick={exportCsv} className="text-xs px-3 py-1.5 rounded-lg border hover:bg-gray-50">Export CSV</button>
+            </div>
           </div>
           <form onSubmit={addLead} className="grid grid-cols-1 sm:grid-cols-6 gap-3">
             <input className="sm:col-span-2 rounded-lg border px-3 py-2" placeholder="Full name" value={form.name} onChange={(e)=>setForm((s)=>({...s,name:e.target.value}))} />

@@ -1001,7 +1001,7 @@ app.post('/api/quotes', authMiddleware, (req, res) => {
     price: toPosNumber(it.price, 0),
   }))
   const amount = safeItems.reduce((sum, it) => sum + it.price * it.qty, 0);
-  const q = { id: `q${Date.now()}`, leadId, projectId, items: quoteItems, status, amount, createdAt: new Date().toISOString() };
+  const q = { id: `q${Date.now()}`, leadId, projectId, items: safeItems, status, amount, createdAt: new Date().toISOString() };
   if (name) q.name = String(name).slice(0, 120);
   quotes.unshift(q);
   saveData();
@@ -1064,6 +1064,10 @@ app.post('/api/items', authMiddleware, (req, res) => {
   if (!name || !sku) return res.status(400).json({ message: 'name and sku required' });
   name = String(name).slice(0, 120);
   sku = String(sku).slice(0, 60);
+  // Prevent duplicate SKU (case-insensitive)
+  if (items.some((i) => String(i.sku||'').toLowerCase() === sku.toLowerCase())) {
+    return res.status(400).json({ message: 'An item with this SKU already exists' });
+  }
   const it = { id: `i${Date.now()}`, name, sku, unit, stock: toPosNumber(stock, 0), minStock: toPosNumber(minStock, 0) };
   items.push(it);
   saveData();
@@ -1072,7 +1076,7 @@ app.post('/api/items', authMiddleware, (req, res) => {
 });
 
 // Update item details
-app.put('/api/items/:id', authMiddleware, (req, res) => {
+app.put('/api/items/:id', authMiddleware, requireRole('admin'), (req, res) => {
   const idx = items.findIndex((i) => i.id === req.params.id);
   if (idx === -1) return res.status(404).json({ message: 'Item not found' });
   const patch = { ...req.body };
@@ -1291,9 +1295,21 @@ app.post('/api/invoices', authMiddleware, (req, res) => {
 app.put('/api/invoices/:id', authMiddleware, (req, res) => {
   const idx = invoices.findIndex((i) => i.id === req.params.id);
   if (idx === -1) return res.status(404).json({ message: 'Invoice not found' });
-  invoices[idx] = { ...invoices[idx], ...req.body };
+  const patch = { ...req.body };
+  if (Array.isArray(patch.items)) {
+    patch.items = patch.items.map((it)=> ({
+      description: it.description || it.name || 'Item',
+      qty: toPosNumber(it.qty, 0),
+      price: toPosNumber(it.price, 0),
+      taxPercent: clampTax(it.taxPercent),
+    }))
+  }
+  invoices[idx] = { ...invoices[idx], ...patch };
+  // Recalculate totals and mirror amount
+  const totals = calculateInvoiceTotals(invoices[idx]);
+  invoices[idx].amount = totals.grandTotal;
   saveData();
-  res.json({ invoice: invoices[idx] });
+  res.json({ invoice: { ...invoices[idx], totals } });
 });
 
 app.listen(PORT, () => {

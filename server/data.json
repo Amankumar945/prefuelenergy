@@ -481,7 +481,7 @@
       "phone": "+91-9000000001",
       "email": "anil@example.com",
       "source": "organic",
-      "status": "new",
+      "status": "quoted",
       "projectSizeKw": 5,
       "createdAt": "2025-09-25T10:00:00Z",
       "acquisition": {
@@ -526,7 +526,7 @@
       "name": "Solar Panel 500W",
       "sku": "SP-500",
       "unit": "pcs",
-      "stock": 40,
+      "stock": 52,
       "minStock": 20
     },
     {
@@ -550,7 +550,7 @@
       "name": "Bar Saddle",
       "sku": "BAR-SADDLE",
       "unit": "pcs",
-      "stock": 0,
+      "stock": 40,
       "minStock": 20
     },
     {
@@ -820,13 +820,14 @@
           "taxPercent": 18
         }
       ],
-      "status": "ordered",
+      "status": "received",
       "createdAt": "2025-10-02T10:00:00Z",
       "totals": {
         "subtotal": 0,
         "tax": 0,
         "grandTotal": 0
-      }
+      },
+      "receivedAt": "2025-10-11T06:09:30.815Z"
     },
     {
       "id": "po1002",
@@ -991,7 +992,16 @@
     }
   ],
   "documents": [],
-  "tasks": [],
+  "tasks": [
+    {
+      "id": "t1760162656581",
+      "projectId": "p1",
+      "title": "Do ASAP",
+      "assignee": "Arav",
+      "dueDate": "12-10-2025",
+      "status": "open"
+    }
+  ],
   "attendanceRecord": {
     "date": "",
     "present": 0,
@@ -999,6 +1009,40 @@
   },
   "serviceTickets": [],
   "invoices": [
+    {
+      "id": "inv1760162818281",
+      "quoteId": "q2003",
+      "customerName": "Customer",
+      "items": [
+        {
+          "description": "Solar Panel 500W",
+          "qty": 15,
+          "price": 9000,
+          "taxPercent": 18
+        },
+        {
+          "description": "String Inverter 7.5kW",
+          "qty": 1,
+          "price": 50000,
+          "taxPercent": 18
+        },
+        {
+          "description": "Mounting Structure (set)",
+          "qty": 1,
+          "price": 20000,
+          "taxPercent": 18
+        },
+        {
+          "description": "BOS + Installation",
+          "qty": 1,
+          "price": 20000,
+          "taxPercent": 18
+        }
+      ],
+      "status": "draft",
+      "createdAt": "2025-10-11T06:06:58.281Z",
+      "amount": 265500
+    },
     {
       "id": "inv1001",
       "quoteId": null,
@@ -1065,6 +1109,16 @@
     }
   ],
   "announcements": [
+    {
+      "id": "a1760162782700",
+      "title": "DIwali Special",
+      "body": "Get Atleast 10 Employees",
+      "audience": "hr",
+      "startsAt": "2025-10-20",
+      "endsAt": "2025-10-30",
+      "active": true,
+      "createdBy": "admin@prefuel"
+    },
     {
       "id": "a1",
       "title": "October Incentive",
