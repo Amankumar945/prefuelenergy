@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import TopNav from '../components/TopNav.jsx'
 import Footer from '../components/Footer.jsx'
 import { api } from '../utils/api.js'
+import { subscribeToLive } from '../utils/live.js'
 
 function Pill({ children, color }) {
   const map = {
@@ -24,8 +25,15 @@ export default function LeadsPage() {
   const [form, setForm] = useState({ name: '', phone: '', email: '', source: 'organic', projectSizeKw: 0, acquisition: { sourceType: '', sourceChannel: '' }, owner: { role: '', person: { id: '', name: '', phone: '' } } })
 
   useEffect(() => {
-    api.get('/api/leads').then((res) => setLeads(res.data.leads||[]))
-  }, [])
+    api.get('/api/leads', { params: { page, size: pageSize } }).then((res) => setLeads(res.data.leads||[]))
+    const unsub = subscribeToLive(undefined, (evt)=>{
+      if (evt?.entity !== 'lead') return
+      if (evt.type === 'create') setLeads((prev)=> [evt.payload, ...prev])
+      if (evt.type === 'update') setLeads((prev)=> prev.map((l)=> l.id===evt.id? evt.payload: l))
+      if (evt.type === 'delete') setLeads((prev)=> prev.filter((l)=> l.id!==evt.id))
+    })
+    return unsub
+  }, [page])
 
   async function addLead(e) {
     e.preventDefault()

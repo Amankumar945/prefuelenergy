@@ -3,6 +3,7 @@ import TopNav from '../components/TopNav.jsx'
 import Footer from '../components/Footer.jsx'
 import { api } from '../utils/api.js'
 import Modal from '../components/Modal.jsx'
+import { subscribeToLive } from '../utils/live.js'
 
 export default function InventoryPage() {
   const [items, setItems] = useState([])
@@ -22,6 +23,14 @@ export default function InventoryPage() {
 
   useEffect(() => {
     api.get('/api/items').then((res)=> setItems(res.data.items||[]))
+    const unsub = subscribeToLive(undefined, (evt)=>{
+      if (evt?.entity !== 'item') return
+      if (evt.type === 'create') setItems((prev)=> [...prev, evt.payload])
+      if (evt.type === 'update') setItems((prev)=> prev.map((x)=> x.id===evt.id ? evt.payload : x))
+      if (evt.type === 'delete') setItems((prev)=> prev.filter((x)=> x.id!==evt.id))
+      if (evt.type === 'bulk' && Array.isArray(evt.payload)) setItems(evt.payload)
+    })
+    return unsub
   }, [])
 
   async function addItem(e) {

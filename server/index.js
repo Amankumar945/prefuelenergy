@@ -1,8 +1,13 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const compression = require('compression');
+const morgan = require('morgan');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
+const { loadSnapshot, saveSnapshot } = require('./storage/index.js');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -11,6 +16,49 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173';
 
 app.use(cors({ origin: CORS_ORIGIN, credentials: true }));
 app.use(express.json());
+app.use(helmet());
+app.use(compression());
+app.use(morgan('tiny'));
+
+// --- Simple SSE (Server-Sent Events) hub for real-time updates ---
+const sseClients = new Set();
+function sseBroadcast(event) {
+  const data = `data: ${JSON.stringify(event)}\n\n`;
+  for (const res of sseClients) {
+    try { res.write(data); } catch (_) {}
+  }
+}
+
+app.get('/api/stream', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders?.();
+  res.write(': ok\n\n');
+  sseClients.add(res);
+  const ping = setInterval(()=>{ try { res.write(': ping\n\n') } catch (_) {} }, 25000)
+  req.on('close', () => { sseClients.delete(res); });
+  req.on('close', () => { clearInterval(ping) });
+});
+
+// --- Lightweight validation & async handler helpers ---
+function validateBody(required = []) {
+  return function(req, res, next) {
+    const body = req.body || {}
+    for (const field of required) {
+      if (body[field] === undefined || body[field] === null || (typeof body[field] === 'string' && body[field].trim() === '')) {
+        return res.status(400).json({ message: `${field} is required` })
+      }
+    }
+    next()
+  }
+}
+
+function asyncHandler(fn) {
+  return function(req, res, next) {
+    Promise.resolve(fn(req, res, next)).catch(next)
+  }
+}
 
 // In-memory users (simple for MVP)
 // Passwords are stored in plain text strictly for demo simplicity. Do NOT use in production.
@@ -529,9 +577,8 @@ function isSafeHttpUrl(u) {
   }
 }
 
-// Persistence helpers (save/load in-memory data to disk)
-const DATA_PATH = path.join(__dirname, 'data.json');
-function saveData() {
+// Persistence helpers (save/load using storage abstraction)
+function persistSnapshot() {
   try {
     const snapshot = {
       projects,
@@ -545,21 +592,19 @@ function saveData() {
       serviceTickets,
       invoices,
       announcements,
+      auditLogs,
       leads,
       teleCallers,
       conversions,
     };
-    fs.writeFileSync(DATA_PATH, JSON.stringify(snapshot, null, 2), 'utf-8');
-  } catch (err) {
-    // ignore persistence errors in MVP
-  }
+    saveSnapshot(snapshot);
+  } catch (_) {}
 }
 
-function loadData() {
+function loadFromSnapshot() {
   try {
-    if (!fs.existsSync(DATA_PATH)) return;
-    const raw = fs.readFileSync(DATA_PATH, 'utf-8');
-    const parsed = JSON.parse(raw);
+    const parsed = loadSnapshot();
+    if (!parsed) return;
     if (Array.isArray(parsed.projects)) { projects.splice(0, projects.length, ...parsed.projects); }
     if (Array.isArray(parsed.leadsData)) { leadsData.splice(0, leadsData.length, ...parsed.leadsData); }
     if (Array.isArray(parsed.items)) { items.splice(0, items.length, ...parsed.items); }
@@ -575,12 +620,10 @@ function loadData() {
     if (parsed.leads && typeof parsed.leads === 'object') { Object.assign(leads, parsed.leads); }
     if (Array.isArray(parsed.teleCallers)) { teleCallers.splice(0, teleCallers.length, ...parsed.teleCallers); }
     if (parsed.conversions && typeof parsed.conversions === 'object') { Object.assign(conversions, parsed.conversions); }
-  } catch (err) {
-    // ignore load errors in MVP
-  }
+  } catch (_) {}
 }
 
-loadData();
+loadFromSnapshot();
 
 // Seed missing inventory items from provided list (idempotent)
 function seedInventoryDefaults() {
@@ -607,7 +650,7 @@ function seedInventoryDefaults() {
       added = true;
     }
   });
-  if (added) saveData();
+  if (added) persistSnapshot();
 }
 
 seedInventoryDefaults();
@@ -644,7 +687,7 @@ function seedInverterModels() {
       }
     });
   });
-  if (changed) saveData();
+  if (changed) persistSnapshot();
 }
 
 seedInverterModels();
@@ -669,7 +712,7 @@ function seedPanelModels() {
       }
     });
   });
-  if (changed) saveData();
+  if (changed) persistSnapshot();
 }
 
 seedPanelModels();
@@ -689,6 +732,7 @@ function logAudit(req, entity, action, entityId, details) {
     auditLogs.unshift(entry);
     // Keep last 2000 entries to limit file size
     if (auditLogs.length > 2000) auditLogs.length = 2000;
+    persistSnapshot();
   } catch (_) {}
 }
 
@@ -720,6 +764,28 @@ function loginRateLimit(req, res, next) {
   next();
 }
 
+// Generic write rate limiter (per IP) for POST/PUT/DELETE
+const writeAttempts = new Map(); // key: ip, value: { count, ts }
+function writeRateLimit(req, res, next) {
+  const method = (req.method || 'GET').toUpperCase()
+  if (method === 'GET') return next()
+  const ip = req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || req.socket.remoteAddress || 'local'
+  const now = Date.now()
+  const windowMs = 60 * 1000 // 1 minute
+  const maxWrites = 120 // 120 writes/min per IP
+  const rec = writeAttempts.get(ip) || { count: 0, ts: now }
+  if (now - rec.ts > windowMs) {
+    rec.count = 0
+    rec.ts = now
+  }
+  rec.count += 1
+  writeAttempts.set(ip, rec)
+  if (rec.count > maxWrites) {
+    return res.status(429).json({ message: 'Too many requests. Please slow down.' })
+  }
+  next()
+}
+
 function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization || '';
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
@@ -736,6 +802,11 @@ function authMiddleware(req, res, next) {
 // Routes
 app.get('/', (req, res) => {
   res.json({ ok: true, name: 'Prefuel Energy API' });
+});
+
+// Health route
+app.get('/healthz', (req, res) => {
+  res.json({ ok: true, status: 'healthy' });
 });
 
 app.post('/api/auth/login', loginRateLimit, (req, res) => {
@@ -934,7 +1005,7 @@ app.get('/api/projects/:id', authMiddleware, (req, res) => {
 });
 
 // Update project milestones / basic fields
-app.post('/api/projects/:id/milestones', authMiddleware, (req, res) => {
+app.post('/api/projects/:id/milestones', authMiddleware, writeRateLimit, (req, res) => {
   const project = projects.find((p) => p.id === req.params.id);
   if (!project) return res.status(404).json({ message: 'Project not found' });
   const { steps, installerName, scheduledDate, installedItems, pendingItems, status, acquisition, followUp } = req.body || {};
@@ -952,10 +1023,16 @@ app.post('/api/projects/:id/milestones', authMiddleware, (req, res) => {
 
 // Leads CRUD
 app.get('/api/leads', authMiddleware, (req, res) => {
-  res.json({ leads: leadsData });
+  const { page, size } = req.query || {}
+  if (page || size) {
+    const result = paginate(leadsData, page, size)
+    const byStatus = leadsData.reduce((acc, l)=>{ acc[l.status]=(acc[l.status]||0)+1; return acc }, {})
+    return res.json({ leads: result.data, page: result.page, size: result.size, total: result.total, byStatus })
+  }
+  res.json({ leads: leadsData })
 });
 
-app.post('/api/leads', authMiddleware, (req, res) => {
+app.post('/api/leads', authMiddleware, writeRateLimit, validateBody(['name']), asyncHandler(async (req, res) => {
   let { name, phone, email, source = 'organic', status = 'new', projectSizeKw = 0, acquisition = null, owner = null } = req.body || {};
   if (!name) return res.status(400).json({ message: 'Name is required' });
   name = String(name).slice(0, 100);
@@ -970,32 +1047,40 @@ app.post('/api/leads', authMiddleware, (req, res) => {
     owner: owner || null,
   };
   leadsData.unshift(lead);
-  saveData();
+  persistSnapshot();
+  sseBroadcast({ type: 'create', entity: 'lead', id: lead.id, payload: lead });
   res.json({ lead });
-});
+}));
 
-app.put('/api/leads/:id', authMiddleware, (req, res) => {
+app.put('/api/leads/:id', authMiddleware, writeRateLimit, (req, res) => {
   const idx = leadsData.findIndex((l) => l.id === req.params.id);
   if (idx === -1) return res.status(404).json({ message: 'Lead not found' });
   leadsData[idx] = { ...leadsData[idx], ...req.body };
-  saveData();
+  persistSnapshot();
+  sseBroadcast({ type: 'update', entity: 'lead', id: leadsData[idx].id, payload: leadsData[idx] });
   res.json({ lead: leadsData[idx] });
 });
 
-app.delete('/api/leads/:id', authMiddleware, requireRole('admin'), (req, res) => {
+app.delete('/api/leads/:id', authMiddleware, writeRateLimit, requireRole('admin'), (req, res) => {
   const idx = leadsData.findIndex((l) => l.id === req.params.id);
   if (idx === -1) return res.status(404).json({ message: 'Lead not found' });
   const [removed] = leadsData.splice(idx, 1);
-  saveData();
+  persistSnapshot();
+  sseBroadcast({ type: 'delete', entity: 'lead', id: removed.id });
   res.json({ removed });
 });
 
 // Quotes simple create/list
 app.get('/api/quotes', authMiddleware, (req, res) => {
-  res.json({ quotes });
+  const { page, size } = req.query || {}
+  if (page || size) {
+    const result = paginate(quotes, page, size)
+    return res.json({ quotes: result.data, page: result.page, size: result.size, total: result.total })
+  }
+  res.json({ quotes })
 });
 
-app.post('/api/quotes', authMiddleware, (req, res) => {
+app.post('/api/quotes', authMiddleware, writeRateLimit, asyncHandler(async (req, res) => {
   const { leadId, projectId = null, items: quoteItems = [], status = 'draft', name = null } = req.body || {};
   const safeItems = (Array.isArray(quoteItems)? quoteItems: []).map((it)=> ({
     ...it,
@@ -1006,19 +1091,22 @@ app.post('/api/quotes', authMiddleware, (req, res) => {
   const q = { id: `q${Date.now()}`, leadId, projectId, items: safeItems, status, amount, createdAt: new Date().toISOString() };
   if (name) q.name = String(name).slice(0, 120);
   quotes.unshift(q);
-  saveData();
+  persistSnapshot();
+  sseBroadcast({ type: 'create', entity: 'quote', id: q.id, payload: q });
   res.json({ quote: q });
-});
+}));
 
-app.put('/api/quotes/:id', authMiddleware, (req, res) => {
+app.put('/api/quotes/:id', authMiddleware, writeRateLimit, (req, res) => {
   const idx = quotes.findIndex((q) => q.id === req.params.id);
   if (idx === -1) return res.status(404).json({ message: 'Quote not found' });
   quotes[idx] = { ...quotes[idx], ...req.body };
+  persistSnapshot();
+  sseBroadcast({ type: 'update', entity: 'quote', id: quotes[idx].id, payload: quotes[idx] });
   res.json({ quote: quotes[idx] });
 });
 
 // Convert quote to project
-app.post('/api/quotes/:id/convert', authMiddleware, (req, res) => {
+app.post('/api/quotes/:id/convert', authMiddleware, writeRateLimit, (req, res) => {
   const q = quotes.find((qq) => qq.id === req.params.id);
   if (!q) return res.status(404).json({ message: 'Quote not found' });
   const customerName = req.body?.customerName || `Project from ${q.leadId || 'quote'}`;
@@ -1047,7 +1135,9 @@ app.post('/api/quotes/:id/convert', authMiddleware, (req, res) => {
   projects.unshift(newProject);
   q.status = 'accepted';
   q.projectId = newProject.id;
-  saveData();
+  persistSnapshot();
+  sseBroadcast({ type: 'create', entity: 'project', id: newProject.id, payload: newProject });
+  sseBroadcast({ type: 'update', entity: 'quote', id: q.id, payload: q });
   res.json({ project: newProject, quote: q });
 });
 
@@ -1061,7 +1151,7 @@ app.get('/api/items', authMiddleware, (req, res) => {
   res.json({ items });
 });
 
-app.post('/api/items', authMiddleware, (req, res) => {
+app.post('/api/items', authMiddleware, writeRateLimit, validateBody(['name','sku']), asyncHandler(async (req, res) => {
   let { name, sku, unit = 'pcs', stock = 0, minStock = 0 } = req.body || {};
   if (!name || !sku) return res.status(400).json({ message: 'name and sku required' });
   name = String(name).slice(0, 120);
@@ -1072,13 +1162,14 @@ app.post('/api/items', authMiddleware, (req, res) => {
   }
   const it = { id: `i${Date.now()}`, name, sku, unit, stock: toPosNumber(stock, 0), minStock: toPosNumber(minStock, 0) };
   items.push(it);
-  saveData();
+  persistSnapshot();
   logAudit(req, 'item', 'create', it.id, { name: it.name, sku: it.sku });
+  sseBroadcast({ type: 'create', entity: 'item', id: it.id, payload: it });
   res.json({ item: it });
-});
+}));
 
 // Update item details
-app.put('/api/items/:id', authMiddleware, requireRole('admin'), (req, res) => {
+app.put('/api/items/:id', authMiddleware, writeRateLimit, requireRole('admin'), (req, res) => {
   const idx = items.findIndex((i) => i.id === req.params.id);
   if (idx === -1) return res.status(404).json({ message: 'Item not found' });
   const patch = { ...req.body };
@@ -1087,18 +1178,20 @@ app.put('/api/items/:id', authMiddleware, requireRole('admin'), (req, res) => {
   if (patch.stock !== undefined) patch.stock = toPosNumber(patch.stock, items[idx].stock || 0);
   if (patch.minStock !== undefined) patch.minStock = toPosNumber(patch.minStock, items[idx].minStock || 0);
   items[idx] = { ...items[idx], ...patch };
-  saveData();
+  persistSnapshot();
   logAudit(req, 'item', 'update', items[idx].id, patch);
+  sseBroadcast({ type: 'update', entity: 'item', id: items[idx].id, payload: items[idx] });
   res.json({ item: items[idx] });
 });
 
 // Delete item (admin only)
-app.delete('/api/items/:id', authMiddleware, requireRole('admin'), (req, res) => {
+app.delete('/api/items/:id', authMiddleware, writeRateLimit, requireRole('admin'), (req, res) => {
   const idx = items.findIndex((i) => i.id === req.params.id);
   if (idx === -1) return res.status(404).json({ message: 'Item not found' });
   const [removed] = items.splice(idx, 1);
-  saveData();
+  persistSnapshot();
   logAudit(req, 'item', 'delete', removed.id, { sku: removed.sku });
+  sseBroadcast({ type: 'delete', entity: 'item', id: removed.id });
   res.json({ removed });
 });
 
@@ -1117,7 +1210,7 @@ app.get('/api/purchase-orders', authMiddleware, (req, res) => {
   res.json({ purchaseOrders: enriched });
 });
 
-app.post('/api/purchase-orders', authMiddleware, (req, res) => {
+app.post('/api/purchase-orders', authMiddleware, writeRateLimit, (req, res) => {
   let { supplier = 'Vendor', lines = [], status = 'ordered' } = req.body || {};
   supplier = String(supplier).slice(0, 160);
   const normalized = (Array.isArray(lines)? lines: []).map((ln) => ({
@@ -1129,12 +1222,13 @@ app.post('/api/purchase-orders', authMiddleware, (req, res) => {
   const po = { id: `po${Date.now()}`, supplier, items: normalized, status, createdAt: new Date().toISOString() };
   po.totals = calculatePoTotals(po)
   purchaseOrders.unshift(po);
-  saveData();
+  persistSnapshot();
+  sseBroadcast({ type: 'create', entity: 'purchaseOrder', id: po.id, payload: po });
   res.json({ purchaseOrder: po });
 });
 
 // Receive PO -> increment stock
-app.post('/api/purchase-orders/:id/receive', authMiddleware, (req, res) => {
+app.post('/api/purchase-orders/:id/receive', authMiddleware, writeRateLimit, (req, res) => {
   const po = purchaseOrders.find((p) => p.id === req.params.id);
   if (!po) return res.status(404).json({ message: 'PO not found' });
   if (po.status === 'received') return res.status(400).json({ message: 'Already received' });
@@ -1144,8 +1238,10 @@ app.post('/api/purchase-orders/:id/receive', authMiddleware, (req, res) => {
   });
   po.status = 'received';
   po.receivedAt = new Date().toISOString();
-  saveData();
+  persistSnapshot();
   logAudit(req, 'purchaseOrder', 'receive', po.id, { lines: po.items?.length||0 });
+  sseBroadcast({ type: 'update', entity: 'purchaseOrder', id: po.id, payload: po });
+  sseBroadcast({ type: 'bulk', entity: 'item', payload: items });
   res.json({ purchaseOrder: po, items });
 });
 
@@ -1156,15 +1252,15 @@ app.get('/api/documents', authMiddleware, (req, res) => {
   res.json({ documents: list });
 });
 
-app.post('/api/documents', authMiddleware, (req, res) => {
+app.post('/api/documents', authMiddleware, writeRateLimit, validateBody(['entityType','entityId','url']), asyncHandler(async (req, res) => {
   const { entityType, entityId, title, url } = req.body || {};
   if (!entityType || !entityId || !url) return res.status(400).json({ message: 'entityType, entityId, url required' });
   if (!isSafeHttpUrl(url)) return res.status(400).json({ message: 'Invalid URL' });
   const doc = { id: `d${Date.now()}`, entityType, entityId, title: title||'Attachment', url, uploadedAt: new Date().toISOString() };
   documents.unshift(doc);
-  saveData();
+  persistSnapshot();
   res.json({ document: doc });
-});
+}));
 
 // Tasks
 app.get('/api/tasks', authMiddleware, (req, res) => {
@@ -1173,21 +1269,21 @@ app.get('/api/tasks', authMiddleware, (req, res) => {
   res.json({ tasks: list });
 });
 
-app.post('/api/tasks', authMiddleware, (req, res) => {
+app.post('/api/tasks', authMiddleware, writeRateLimit, validateBody(['title']), asyncHandler(async (req, res) => {
   const { projectId, title, assignee = '', dueDate = '', status = 'open' } = req.body || {};
   if (!title) return res.status(400).json({ message: 'title required' });
   const task = { id: `t${Date.now()}`, projectId: projectId||null, title, assignee, dueDate, status };
   tasks.unshift(task);
-  saveData();
+  persistSnapshot();
   logAudit(req, 'task', 'create', task.id, { projectId: task.projectId });
   res.json({ task });
-});
+}));
 
-app.put('/api/tasks/:id', authMiddleware, (req, res) => {
+app.put('/api/tasks/:id', authMiddleware, writeRateLimit, (req, res) => {
   const idx = tasks.findIndex((t) => t.id === req.params.id);
   if (idx === -1) return res.status(404).json({ message: 'Task not found' });
   tasks[idx] = { ...tasks[idx], ...req.body };
-  saveData();
+  persistSnapshot();
   logAudit(req, 'task', 'update', tasks[idx].id, req.body);
   res.json({ task: tasks[idx] });
 });
@@ -1197,7 +1293,7 @@ app.get('/api/attendance', authMiddleware, (req, res) => {
   res.json({ attendance: attendanceRecord });
 });
 
-app.post('/api/attendance', authMiddleware, (req, res) => {
+app.post('/api/attendance', authMiddleware, writeRateLimit, (req, res) => {
   const { date, present = 0, absent = 0 } = req.body || {};
   attendanceRecord = { date, present: Number(present)||0, absent: Number(absent)||0 };
   saveData();
@@ -1215,20 +1311,22 @@ app.get('/api/announcements', authMiddleware, (req, res) => {
   res.json({ announcements: list })
 })
 
-app.post('/api/announcements', authMiddleware, requireRole('admin'), (req, res) => {
+app.post('/api/announcements', authMiddleware, writeRateLimit, requireRole('admin'), validateBody(['title','body']), asyncHandler(async (req, res) => {
   const { title, body, audience = 'all', startsAt = null, endsAt = null, active = true } = req.body || {}
   if (!title || !body) return res.status(400).json({ message: 'title and body required' })
   const a = { id: `a${Date.now()}`, title, body, audience, startsAt, endsAt, active, createdBy: req.user?.email||'admin' }
   announcements.unshift(a)
-  saveData();
+  persistSnapshot();
+  sseBroadcast({ type: 'create', entity: 'announcement', id: a.id, payload: a })
   res.json({ announcement: a })
-})
+}))
 
-app.put('/api/announcements/:id', authMiddleware, requireRole('admin'), (req, res) => {
+app.put('/api/announcements/:id', authMiddleware, writeRateLimit, requireRole('admin'), (req, res) => {
   const idx = announcements.findIndex((x)=> x.id === req.params.id)
   if (idx === -1) return res.status(404).json({ message: 'Announcement not found' })
   announcements[idx] = { ...announcements[idx], ...req.body }
-  saveData();
+  persistSnapshot();
+  sseBroadcast({ type: 'update', entity: 'announcement', id: announcements[idx].id, payload: announcements[idx] })
   res.json({ announcement: announcements[idx] })
 })
 
@@ -1239,20 +1337,20 @@ app.get('/api/service-tickets', authMiddleware, (req, res) => {
   res.json({ tickets: list });
 });
 
-app.post('/api/service-tickets', authMiddleware, (req, res) => {
+app.post('/api/service-tickets', authMiddleware, writeRateLimit, (req, res) => {
   const { projectId = null, leadId = null, title, priority = 'low', assignedTo = '' } = req.body || {};
   if (!title) return res.status(400).json({ message: 'title required' });
   const ticket = { id: `svc${Date.now()}`, projectId, leadId, title, priority, status: 'open', assignedTo, createdAt: new Date().toISOString() };
   serviceTickets.unshift(ticket);
-  saveData();
+  persistSnapshot();
   res.json({ ticket });
 });
 
-app.put('/api/service-tickets/:id', authMiddleware, (req, res) => {
+app.put('/api/service-tickets/:id', authMiddleware, writeRateLimit, (req, res) => {
   const idx = serviceTickets.findIndex((t) => t.id === req.params.id);
   if (idx === -1) return res.status(404).json({ message: 'Ticket not found' });
   serviceTickets[idx] = { ...serviceTickets[idx], ...req.body };
-  saveData();
+  persistSnapshot();
   res.json({ ticket: serviceTickets[idx] });
 });
 
@@ -1268,11 +1366,16 @@ function calculateInvoiceTotals(inv) {
 }
 
 app.get('/api/invoices', authMiddleware, (req, res) => {
-  const enriched = invoices.map((inv) => ({ ...inv, totals: calculateInvoiceTotals(inv) }))
-  res.json({ invoices: enriched });
+  const mapWithTotals = (list) => list.map((inv) => ({ ...inv, totals: calculateInvoiceTotals(inv) }))
+  const { page, size } = req.query || {}
+  if (page || size) {
+    const result = paginate(invoices, page, size)
+    return res.json({ invoices: mapWithTotals(result.data), page: result.page, size: result.size, total: result.total })
+  }
+  res.json({ invoices: mapWithTotals(invoices) })
 });
 
-app.post('/api/invoices', authMiddleware, (req, res) => {
+app.post('/api/invoices', authMiddleware, writeRateLimit, asyncHandler(async (req, res) => {
   const { quoteId = null, customerName = 'Customer', amount = 0, status = 'draft', items = null } = req.body || {};
   let invItems = Array.isArray(items) ? items.map((it)=> ({
     description: it.description || it.name || 'Item',
@@ -1294,11 +1397,20 @@ app.post('/api/invoices', authMiddleware, (req, res) => {
   // keep a legacy amount mirror for older clients if needed
   inv.amount = totals.grandTotal
   invoices.unshift(inv);
-  saveData();
+  persistSnapshot();
+  sseBroadcast({ type: 'create', entity: 'invoice', id: inv.id, payload: inv });
   res.json({ invoice: { ...inv, totals } });
-});
+}));
 
-app.put('/api/invoices/:id', authMiddleware, (req, res) => {
+// --- Centralized error handler ---
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  try { logAudit(req, 'system', 'error', 'n/a', { message: err?.message||'Error' }) } catch (_) {}
+  const status = err?.statusCode || err?.status || 500
+  res.status(status).json({ message: err?.message || 'Internal Server Error' })
+})
+
+app.put('/api/invoices/:id', authMiddleware, writeRateLimit, (req, res) => {
   const idx = invoices.findIndex((i) => i.id === req.params.id);
   if (idx === -1) return res.status(404).json({ message: 'Invoice not found' });
   const patch = { ...req.body };
@@ -1314,7 +1426,8 @@ app.put('/api/invoices/:id', authMiddleware, (req, res) => {
   // Recalculate totals and mirror amount
   const totals = calculateInvoiceTotals(invoices[idx]);
   invoices[idx].amount = totals.grandTotal;
-  saveData();
+  persistSnapshot();
+  sseBroadcast({ type: 'update', entity: 'invoice', id: invoices[idx].id, payload: invoices[idx] });
   res.json({ invoice: { ...invoices[idx], totals } });
 });
 

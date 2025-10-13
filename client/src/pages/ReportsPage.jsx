@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import TopNav from '../components/TopNav.jsx'
 import Footer from '../components/Footer.jsx'
 import { api } from '../utils/api.js'
+import { subscribeToLive } from '../utils/live.js'
 
 function downloadCsv(filename, rows) {
   const escape = (v) => `"${String(v??'').replace(/"/g,'""')}"`
@@ -71,6 +72,21 @@ export default function ReportsPage() {
     if (from) params.from = from
     if (to) params.to = to
     api.get('/api/reports/summary', { params }).then((res)=> setData(res.data))
+  }, [period, from, to])
+  useEffect(() => {
+    const unsub = subscribeToLive(undefined, (evt)=>{
+      if (['lead','project','purchaseOrder','invoice'].includes(evt?.entity)) {
+        // throttle: small delay before re-fetch to batch bursts
+        setTimeout(()=>{
+          const computedDays = period === 'weekly' ? 7 : period === 'quarterly' ? 90 : period === 'yearly' ? 365 : 30
+          const params = { days: computedDays }
+          if (from) params.from = from
+          if (to) params.to = to
+          api.get('/api/reports/summary', { params }).then((res)=> setData(res.data))
+        }, 300)
+      }
+    })
+    return unsub
   }, [period, from, to])
 
   return (

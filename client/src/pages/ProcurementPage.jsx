@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import TopNav from '../components/TopNav.jsx'
 import Footer from '../components/Footer.jsx'
 import { api } from '../utils/api.js'
+import { subscribeToLive } from '../utils/live.js'
 
 export default function ProcurementPage() {
   const [items, setItems] = useState([])
@@ -16,6 +17,19 @@ export default function ProcurementPage() {
       setItems(it.data.items||[])
       setPos(po.data.purchaseOrders||[])
     })
+    const unsub = subscribeToLive(undefined, (evt)=>{
+      if (evt?.entity === 'item') {
+        if (evt.type === 'create') setItems((prev)=> [...prev, evt.payload])
+        if (evt.type === 'update') setItems((prev)=> prev.map((x)=> x.id===evt.id? evt.payload: x))
+        if (evt.type === 'delete') setItems((prev)=> prev.filter((x)=> x.id!==evt.id))
+        if (evt.type === 'bulk' && Array.isArray(evt.payload)) setItems(evt.payload)
+      }
+      if (evt?.entity === 'purchaseOrder') {
+        if (evt.type === 'create') setPos((prev)=> [evt.payload, ...prev])
+        if (evt.type === 'update') setPos((prev)=> prev.map((p)=> p.id===evt.id? evt.payload: p))
+      }
+    })
+    return unsub
   }, [])
 
   function updateLine(idx, patch) {

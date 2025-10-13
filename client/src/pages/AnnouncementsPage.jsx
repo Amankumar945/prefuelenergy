@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import TopNav from '../components/TopNav.jsx'
 import Footer from '../components/Footer.jsx'
 import { api } from '../utils/api.js'
+import { subscribeToLive } from '../utils/live.js'
 
 export default function AnnouncementsPage() {
   const user = JSON.parse(localStorage.getItem('user')||'{}')
@@ -11,6 +12,13 @@ export default function AnnouncementsPage() {
 
   useEffect(() => {
     api.get('/api/announcements').then((res)=> setList(res.data.announcements||[]))
+    const unsub = subscribeToLive(undefined, (evt)=>{
+      if (evt?.entity !== 'announcement') return
+      if (evt.type === 'create') setList((prev)=> [evt.payload, ...prev])
+      if (evt.type === 'update') setList((prev)=> prev.map((a)=> a.id===evt.id? evt.payload: a))
+      if (evt.type === 'delete') setList((prev)=> prev.filter((a)=> a.id!==evt.id))
+    })
+    return unsub
   }, [])
 
   async function createAnnouncement(e) {

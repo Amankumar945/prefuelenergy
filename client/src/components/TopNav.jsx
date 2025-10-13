@@ -123,6 +123,7 @@ export default function TopNav() {
           </div>
         </nav>
       </div>
+      <div id="toast-area" className="fixed bottom-4 right-4 z-50 space-y-2"></div>
     </header>
   )
 }

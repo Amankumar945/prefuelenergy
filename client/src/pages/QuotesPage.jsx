@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import TopNav from '../components/TopNav.jsx'
 import Footer from '../components/Footer.jsx'
 import { api } from '../utils/api.js'
+import { subscribeToLive } from '../utils/live.js'
 
 export default function QuotesPage() {
   const [leads, setLeads] = useState([])
@@ -9,15 +10,24 @@ export default function QuotesPage() {
   const [form, setForm] = useState({ leadId: '', items: [{ itemId: '', name: '', qty: 1, price: 0 }] })
   const [convertForm, setConvertForm] = useState({ customerName: '', siteAddress: '', capacityKw: 0 })
 
+  const [page, setPage] = useState(1)
+  const pageSize = 6
   useEffect(() => {
     Promise.all([
       api.get('/api/leads'),
-      api.get('/api/quotes'),
+      api.get('/api/quotes', { params: { page, size: pageSize } }),
     ]).then(([l, q]) => {
       setLeads(l.data.leads || [])
       setQuotes(q.data.quotes || [])
     })
-  }, [])
+    const unsub = subscribeToLive(undefined, (evt)=>{
+      if (evt?.entity !== 'quote') return
+      if (evt.type === 'create') setQuotes((prev)=> [evt.payload, ...prev])
+      if (evt.type === 'update') setQuotes((prev)=> prev.map((qq)=> qq.id===evt.id? evt.payload: qq))
+      if (evt.type === 'delete') setQuotes((prev)=> prev.filter((qq)=> qq.id!==evt.id))
+    })
+    return unsub
+  }, [page])
 
   const total = useMemo(()=> form.items.reduce((s, it)=> s + (Number(it.qty)||0)*(Number(it.price)||0), 0), [form.items])
 

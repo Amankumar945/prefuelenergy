@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import TopNav from '../components/TopNav.jsx'
 import Footer from '../components/Footer.jsx'
 import { api } from '../utils/api.js'
+import { subscribeToLive } from '../utils/live.js'
 
 export default function InvoicesPage() {
   const [quotes, setQuotes] = useState([])
@@ -13,17 +14,30 @@ export default function InvoicesPage() {
   const [editing, setEditing] = useState(null)
   const [editForm, setEditForm] = useState({ customerName: '', status: 'draft', items: [] })
 
+  const [page, setPage] = useState(1)
+  const pageSize = 6
   useEffect(() => {
     Promise.all([
       api.get('/api/quotes'),
-      api.get('/api/invoices'),
+      api.get('/api/invoices', { params: { page, size: pageSize } }),
       api.get('/api/leads'),
     ]).then(([q, inv, l]) => {
       setQuotes(q.data.quotes||[])
       setInvoices(inv.data.invoices||[])
       setLeads(l.data.leads||[])
     })
-  }, [])
+    const unsub = subscribeToLive(undefined, (evt)=>{
+      if (evt?.entity === 'invoice') {
+        if (evt.type === 'create') setInvoices((prev)=> [evt.payload, ...prev])
+        if (evt.type === 'update') setInvoices((prev)=> prev.map((i)=> i.id===evt.id? evt.payload: i))
+      }
+      if (evt?.entity === 'quote') {
+        if (evt.type === 'create') setQuotes((prev)=> [evt.payload, ...prev])
+        if (evt.type === 'update') setQuotes((prev)=> prev.map((qq)=> qq.id===evt.id? evt.payload: qq))
+      }
+    })
+    return unsub
+  }, [page])
 
   useEffect(() => {
     if (!form.quoteId) return

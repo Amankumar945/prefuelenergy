@@ -5,6 +5,7 @@ import TopNav from '../components/TopNav.jsx'
 import Footer from '../components/Footer.jsx'
 import ProgressBar from '../components/ProgressBar.jsx'
 import { useMemo } from 'react'
+import { subscribeToLive } from '../utils/live.js'
 
 function StatCard({ title, value, subtitle, accent }) {
   return (
@@ -29,10 +30,19 @@ export default function DashboardPage() {
     navigate('/login')
   }
 
-  useEffect(() => {
+  function fetchStats() {
     api.get('/api/stats')
       .then((res) => setStats(res.data))
       .catch(() => setStats({ error: true }))
+  }
+  useEffect(() => { fetchStats() }, [])
+  useEffect(() => {
+    const unsub = subscribeToLive(undefined, (evt)=>{
+      if (['lead','quote','project','item','purchaseOrder','invoice','announcement'].includes(evt?.entity)) {
+        fetchStats()
+      }
+    })
+    return unsub
   }, [])
   const [ann, setAnn] = useState([])
   useEffect(() => {
@@ -47,6 +57,9 @@ export default function DashboardPage() {
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
           <h2 className="text-2xl font-semibold">Solar Rooftop — Overview</h2>
           <p className="text-sm text-gray-500 mt-1">India Government scheme for home installations. Track leads, callers, conversions, and projects.</p>
+          <div className="mt-3">
+            <button onClick={fetchStats} className="text-xs px-3 py-1.5 rounded-lg border hover:bg-gray-50">Refresh</button>
+          </div>
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <div className="text-xs text-gray-500 mb-1">Leads progress</div>

@@ -3,6 +3,7 @@ import { api } from '../utils/api.js'
 import { Link } from 'react-router-dom'
 import TopNav from '../components/TopNav.jsx'
 import Footer from '../components/Footer.jsx'
+import { subscribeToLive } from '../utils/live.js'
 
 function Section({ title, children }) {
   return (
@@ -90,6 +91,12 @@ export default function ProjectsPage() {
   useEffect(() => {
     api.get('/api/projects')
       .then((res) => setData(res.data.projects || []))
+    const unsub = subscribeToLive(undefined, (evt)=>{
+      if (evt?.entity !== 'project') return
+      if (evt.type === 'create') setData((prev)=> [evt.payload, ...prev])
+      if (evt.type === 'update') setData((prev)=> prev.map((p)=> p.id===evt.id? evt.payload: p))
+    })
+    return unsub
   }, [])
 
   const filtered = useMemo(()=>{
