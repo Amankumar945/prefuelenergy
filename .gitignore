@@ -13,4 +13,8 @@ server/node_modules/
 server/.env
 server/data.json
 
+# Local Android app (separate repo), ignore in parent repo
+Prefuel Android App/
+prefuel-android-app/
+
 
