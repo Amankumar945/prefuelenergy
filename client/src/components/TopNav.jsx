@@ -4,6 +4,12 @@ import DigitalClock from './DigitalClock.jsx'
 export default function TopNav() {
   const location = useLocation()
   const user = JSON.parse(localStorage.getItem('user') || '{}')
+  const [online, setOnline] = React.useState(true)
+  React.useEffect(()=>{
+    function handler(e){ setOnline(!!e?.detail?.online) }
+    window.addEventListener('sse:status', handler)
+    return ()=> window.removeEventListener('sse:status', handler)
+  },[])
 
   function logout() {
     localStorage.removeItem('token')
@@ -110,6 +116,10 @@ export default function TopNav() {
           )}
           <span className="mx-2 text-gray-200">|</span>
           <div className="absolute right-4 top-3 flex flex-col items-end gap-1 shrink-0 whitespace-nowrap">
+            <span className="inline-flex items-center gap-2 text-xs text-gray-600">
+              <span className={`h-2 w-2 rounded-full ${online?'bg-emerald-500':'bg-gray-400'}`}></span>
+              <span>{online?'Live':'Offline'}</span>
+            </span>
             <span className="hidden sm:inline-flex items-center gap-2 text-gray-700">
               <span className="px-2 py-0.5 rounded-md bg-gray-100 border text-xs">
                 <span className="font-medium">{user?.name || 'User'}</span>

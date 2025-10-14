@@ -4,6 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
+const { z } = require('zod');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
@@ -59,6 +60,60 @@ function asyncHandler(fn) {
     Promise.resolve(fn(req, res, next)).catch(next)
   }
 }
+
+function validateZod(schema) {
+  return function(req, res, next) {
+    const body = req.body || {}
+    const result = schema.safeParse(body)
+    if (!result.success) {
+      return res.status(400).json({ message: 'Invalid request', details: result.error.flatten() })
+    }
+    req.body = result.data
+    next()
+  }
+}
+
+// Zod schemas (lightweight)
+const LeadCreateSchema = z.object({
+  name: z.string().min(1).max(100),
+  phone: z.string().optional(),
+  email: z.string().email().optional().or(z.literal('')),
+  source: z.string().optional(),
+  status: z.string().optional(),
+  projectSizeKw: z.number().nonnegative().optional(),
+  acquisition: z.any().optional(),
+  owner: z.any().optional(),
+})
+
+const ItemCreateSchema = z.object({
+  name: z.string().min(1).max(120),
+  sku: z.string().min(1).max(60),
+  unit: z.string().min(1).max(20).optional(),
+  stock: z.number().nonnegative().optional(),
+  minStock: z.number().nonnegative().optional(),
+})
+
+const QuoteCreateSchema = z.object({
+  leadId: z.string().nullable().optional(),
+  projectId: z.string().nullable().optional(),
+  status: z.string().optional(),
+  name: z.string().max(120).nullable().optional(),
+  items: z.array(z.object({ itemId: z.string().nullable().optional(), name: z.string().optional(), qty: z.number().nonnegative().optional(), price: z.number().nonnegative().optional() })).optional()
+})
+
+const InvoiceCreateSchema = z.object({
+  quoteId: z.string().nullable().optional(),
+  customerName: z.string().min(1).max(160).optional(),
+  amount: z.number().nonnegative().optional(),
+  status: z.enum(['draft','sent','paid']).optional(),
+  items: z.array(z.object({ description: z.string().optional(), qty: z.number().nonnegative().optional(), price: z.number().nonnegative().optional(), taxPercent: z.number().min(0).max(28).optional() })).optional()
+})
+
+const POCreateSchema = z.object({
+  supplier: z.string().min(1).max(160).optional(),
+  status: z.string().optional(),
+  lines: z.array(z.object({ itemId: z.string(), qty: z.number().nonnegative(), unitPrice: z.number().nonnegative(), taxPercent: z.number().min(0).max(28).optional() })).optional()
+})
 
 // In-memory users (simple for MVP)
 // Passwords are stored in plain text strictly for demo simplicity. Do NOT use in production.
@@ -1032,7 +1087,7 @@ app.get('/api/leads', authMiddleware, (req, res) => {
   res.json({ leads: leadsData })
 });
 
-app.post('/api/leads', authMiddleware, writeRateLimit, validateBody(['name']), asyncHandler(async (req, res) => {
+app.post('/api/leads', authMiddleware, writeRateLimit, validateZod(LeadCreateSchema), asyncHandler(async (req, res) => {
   let { name, phone, email, source = 'organic', status = 'new', projectSizeKw = 0, acquisition = null, owner = null } = req.body || {};
   if (!name) return res.status(400).json({ message: 'Name is required' });
   name = String(name).slice(0, 100);
@@ -1080,7 +1135,7 @@ app.get('/api/quotes', authMiddleware, (req, res) => {
   res.json({ quotes })
 });
 
-app.post('/api/quotes', authMiddleware, writeRateLimit, asyncHandler(async (req, res) => {
+app.post('/api/quotes', authMiddleware, writeRateLimit, validateZod(QuoteCreateSchema), asyncHandler(async (req, res) => {
   const { leadId, projectId = null, items: quoteItems = [], status = 'draft', name = null } = req.body || {};
   const safeItems = (Array.isArray(quoteItems)? quoteItems: []).map((it)=> ({
     ...it,
@@ -1151,7 +1206,7 @@ app.get('/api/items', authMiddleware, (req, res) => {
   res.json({ items });
 });
 
-app.post('/api/items', authMiddleware, writeRateLimit, validateBody(['name','sku']), asyncHandler(async (req, res) => {
+app.post('/api/items', authMiddleware, writeRateLimit, validateZod(ItemCreateSchema), asyncHandler(async (req, res) => {
   let { name, sku, unit = 'pcs', stock = 0, minStock = 0 } = req.body || {};
   if (!name || !sku) return res.status(400).json({ message: 'name and sku required' });
   name = String(name).slice(0, 120);
@@ -1210,7 +1265,7 @@ app.get('/api/purchase-orders', authMiddleware, (req, res) => {
   res.json({ purchaseOrders: enriched });
 });
 
-app.post('/api/purchase-orders', authMiddleware, writeRateLimit, (req, res) => {
+app.post('/api/purchase-orders', authMiddleware, writeRateLimit, validateZod(POCreateSchema), (req, res) => {
   let { supplier = 'Vendor', lines = [], status = 'ordered' } = req.body || {};
   supplier = String(supplier).slice(0, 160);
   const normalized = (Array.isArray(lines)? lines: []).map((ln) => ({
@@ -1356,11 +1411,18 @@ app.put('/api/service-tickets/:id', authMiddleware, writeRateLimit, (req, res) =
 
 // Invoices
 function calculateInvoiceTotals(inv) {
-  const subtotal = (inv.items || []).reduce((s, it) => s + (Number(it.qty)||0)*(Number(it.price)||0), 0)
-  const tax = (inv.items || []).reduce((s, it) => {
-    const base = (Number(it.qty)||0)*(Number(it.price)||0)
-    return s + base*((Number(it.taxPercent)||0)/100)
-  }, 0)
+  const items = (inv.items || []).map((it) => ({
+    qty: Math.max(0, Number(it.qty)||0),
+    price: Math.max(0, Number(it.price)||0),
+    taxPercent: clampTax(it.taxPercent),
+  }))
+  const lineTotals = items.map((ln)=> {
+    const base = Math.round((ln.qty * ln.price) * 100) / 100
+    const lineTax = Math.round((base * (ln.taxPercent/100)) * 100) / 100
+    return { base, lineTax }
+  })
+  const subtotal = lineTotals.reduce((s, l)=> s + l.base, 0)
+  const tax = lineTotals.reduce((s, l)=> s + l.lineTax, 0)
   const grandTotal = Math.round((subtotal + tax) * 100) / 100
   return { subtotal, tax, grandTotal }
 }
@@ -1375,7 +1437,14 @@ app.get('/api/invoices', authMiddleware, (req, res) => {
   res.json({ invoices: mapWithTotals(invoices) })
 });
 
-app.post('/api/invoices', authMiddleware, writeRateLimit, asyncHandler(async (req, res) => {
+let invoiceCounter = 1
+function nextInvoiceId() {
+  const y = new Date().toISOString().slice(0,7).replace('-','')
+  const num = String(invoiceCounter++).padStart(4,'0')
+  return `INV-${y}-${num}`
+}
+
+app.post('/api/invoices', authMiddleware, writeRateLimit, validateZod(InvoiceCreateSchema), asyncHandler(async (req, res) => {
   const { quoteId = null, customerName = 'Customer', amount = 0, status = 'draft', items = null } = req.body || {};
   let invItems = Array.isArray(items) ? items.map((it)=> ({
     description: it.description || it.name || 'Item',
@@ -1392,7 +1461,7 @@ app.post('/api/invoices', authMiddleware, writeRateLimit, asyncHandler(async (re
     }
   }
 
-  const inv = { id: `inv${Date.now()}`, quoteId, customerName, items: invItems || [], status, createdAt: new Date().toISOString() };
+  const inv = { id: nextInvoiceId(), quoteId, customerName, items: invItems || [], status, createdAt: new Date().toISOString() };
   const totals = calculateInvoiceTotals(inv)
   // keep a legacy amount mirror for older clients if needed
   inv.amount = totals.grandTotal
