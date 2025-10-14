@@ -4,6 +4,14 @@ A full-stack demo ERP for a Solar Rooftop company (India context), covering lead
 
 This monorepo contains a Vite/React/Tailwind client and an Express/Node server with JWT authentication and simple file-based persistence.
 
+Stage 1 (Complete):
+- Real-time UI via SSE with auto-reconnect; Live/Offline indicator in the top bar
+- Offline-first basics: PWA manifest + service worker shell cache; offline write queue with auto-sync
+- Input validation with zod on key write routes (leads, items, quotes, POs, invoices)
+- Pagination totals surfaced to UI (leads, quotes, invoices)
+- Invoice numbering (INV-YYYYMM-####) and line-level rounding for accurate GST math
+- SEO meta on client; one-process production serving (Express serves client/dist)
+
 ## Monorepo layout
 
 ```
@@ -18,6 +26,8 @@ Prefuel Energy/
 - Server: Node.js, Express, jsonwebtoken, cors
 - Auth: JWT (7-day expiry), localStorage in client
 - Persistence: In-memory with snapshot persisted to `server/data.json`
+ - Realtime: Server-Sent Events (SSE) endpoint `/api/stream` with heartbeat and backoff on client
+ - Offline: Service worker for shell/static caching; Axios write queue with auto-flush on reconnect
 
 ## Quick start (dev)
 1) Start API server
@@ -40,6 +50,10 @@ npm run dev
 - `PORT` (default: `5000`)
 - `JWT_SECRET` (default: `prefuel_energy_dev_secret_please_change`)
 - `CORS_ORIGIN` (default: `http://localhost:5173`)
+ - `DATA_FILE`, `DATA_BACKUP_DIR`, `DATA_BACKUP_KEEP` (optional; file snapshot path and backups)
+
+### Environment variables (client)
+- `VITE_API_BASE_URL` (default: `http://localhost:5000`)
 
 ## Authentication and roles
 - Roles: `admin`, `staff`, `hr` (enforced on both client routes and server endpoints)
@@ -68,6 +82,9 @@ Client stores `token` and `user` in `localStorage` and injects `Authorization: B
 ## API surface (high-level)
 Base URL: `http://localhost:5000`
 
+Realtime
+- `GET /api/stream` (auth) → SSE stream of `{ type, entity, id, payload }`
+
 Auth
 - `POST /api/auth/login` → `{ token, user }`
 - `GET /api/me` (auth) → `{ user }`
@@ -82,13 +99,13 @@ Projects
 - `POST /api/projects/:id/milestones` (auth) → update steps/installer/schedule/acquisition/followUp
 
 Leads
-- `GET /api/leads` (auth)
+- `GET /api/leads` (auth) → supports pagination `?page=&size=`, returns `{ leads, page, size, total }`
 - `POST /api/leads` (auth)
 - `PUT /api/leads/:id` (auth)
 - `DELETE /api/leads/:id` (auth + admin)
 
 Quotes
-- `GET /api/quotes` (auth)
+- `GET /api/quotes` (auth) → supports `?page=&size=`, returns `{ quotes, page, size, total }`
 - `POST /api/quotes` (auth)
 - `PUT /api/quotes/:id` (auth)
 - `POST /api/quotes/:id/convert` (auth) → creates a project, marks quote accepted
@@ -105,8 +122,8 @@ Procurement / Purchase Orders
 - `POST /api/purchase-orders/:id/receive` (auth) → increments stock; marks received
 
 Invoices
-- `GET /api/invoices` (auth) → totals computed and attached
-- `POST /api/invoices` (auth) → if `quoteId` set and no items provided, derives lines from quote
+- `GET /api/invoices` (auth) → supports `?page=&size=`, returns `{ invoices, page, size, total }` and per-invoice `{ totals }`
+- `POST /api/invoices` (auth) → if `quoteId` set and no items provided, derives lines from quote; IDs like `INV-YYYYMM-####`
 - `PUT /api/invoices/:id` (auth) → recomputes totals and mirrors to `amount`
 
 Documents
@@ -158,6 +175,9 @@ Server recomputes totals for list and on creation/receive.
 - Mirror `invoice.amount = grandTotal` for legacy compatibility
 - Outstanding computed in reports: `outstanding = totalAll - paidAll`
 - Aging buckets allocate unpaid grand totals by days since `createdAt`: `0–30`, `31–60`, `61–90`, `90+`
+
+### Invoice numbering
+- IDs are generated as `INV-YYYYMM-####` (resets counter when server restarts in this demo; persist counter if needed).
 
 ### Reports KPIs and trends
 - Leads: counts by status; daily creation trend in selected window
@@ -215,22 +235,35 @@ curl -sS -X POST http://localhost:5000/api/invoices \
 ```
 
 ## Known gaps and recommendations
-- Inventory edit permissions (UX):
-  - Server requires admin for `PUT /api/items/:id`, but the UI exposes an edit dialog to any role. Recommendation: gate the edit UI by role or show a clear 403 message.
-- Legacy inverter in POs:
-  - Seeder removes legacy `INV-5K`/generic inverter; existing `po1001` references `itemId: i2` which may not exist. Recommendation: migrate PO lines to current SKUs or keep a legacy mapping.
-- Announcements filter:
-  - API filters by date window but not by `active` flag. Recommendation: respect `active` if needed for precise visibility.
-- Invoice customer name default:
-  - When selecting a quote, UI sets `customerName` to the `leadId` (identifier), not the human-friendly name. Recommendation: resolve and display the lead name.
-- Data label consistency:
-  - Some seeded panel names and SKUs have mismatched wattages/labels (cosmetic). Recommendation: normalize names and SKUs for clarity in exports/reports.
-- Staff login quick-select:
-  - Demo login screen has quick toggles for Admin/HR only. Recommendation: add a Staff toggle for parity.
+- Offline queue uses localStorage (simple). Consider IndexedDB + Background Sync for large queues.
+- Offline conflict resolution is last-write-wins (server). Consider domain-specific merge strategies if needed.
+- Service worker requires HTTPS in production. Ensure MilesWeb serves your domain via HTTPS.
+- Invoice counter resets on server restart (demo). Persist counter if external numbering is required.
 
 ## Security notes (demo-only)
 - Passwords are plain text; JWT secret is defaulted; CORS is permissive for local dev. Do not use as-is in production.
 - Add rate limiting (beyond login), audit persistence, and structured validation for production.
+
+## Production build & deploy (MilesWeb)
+1) Client build (already done in repo, repeat as needed):
+```
+cd client
+npm install
+npm run build
+```
+2) Server env (.env):
+```
+PORT=5000
+JWT_SECRET=change_me
+CORS_ORIGIN=https://your-domain.example
+```
+3) Start server in production (one process serving API + static UI):
+```
+cd server
+NODE_ENV=production node index.js
+```
+4) Health check: `GET /healthz` should return `{ ok: true }`
+5) Ensure HTTPS so the service worker and offline cache work.
 
 ## Developer tips
 - Clearing auth: remove `localStorage` keys `token` and `user`
