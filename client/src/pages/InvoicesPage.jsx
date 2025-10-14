@@ -15,6 +15,7 @@ export default function InvoicesPage() {
   const [editForm, setEditForm] = useState({ customerName: '', status: 'draft', items: [] })
 
   const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
   const pageSize = 6
   useEffect(() => {
     Promise.all([
@@ -24,6 +25,7 @@ export default function InvoicesPage() {
     ]).then(([q, inv, l]) => {
       setQuotes(q.data.quotes||[])
       setInvoices(inv.data.invoices||[])
+      if (typeof inv.data.total === 'number') setTotal(inv.data.total)
       setLeads(l.data.leads||[])
     })
     const unsub = subscribeToLive(undefined, (evt)=>{
@@ -147,6 +149,13 @@ export default function InvoicesPage() {
             </div>
           ))}
           {invoices.length===0 && <div className="text-sm text-gray-500">No invoices yet.</div>}
+          {(total>pageSize) && (
+            <div className="md:col-span-2 lg:col-span-3 flex items-center justify-center gap-2 text-sm">
+              <button disabled={page===1} onClick={()=>setPage((p)=>Math.max(1,p-1))} className="px-3 py-1.5 rounded-lg border disabled:opacity-50">Prev</button>
+              <span>Page {page} / {Math.ceil((total||0)/pageSize)}</span>
+              <button disabled={page>=Math.ceil((total||0)/pageSize)} onClick={()=>setPage((p)=>p+1)} className="px-3 py-1.5 rounded-lg border disabled:opacity-50">Next</button>
+            </div>
+          )}
         </section>
 
         {/* Edit Invoice Modal */}

@@ -864,6 +864,17 @@ app.get('/healthz', (req, res) => {
   res.json({ ok: true, status: 'healthy' });
 });
 
+// In production, serve built client
+if (process.env.NODE_ENV === 'production') {
+  const clientDist = path.join(__dirname, '../client/dist')
+  if (fs.existsSync(clientDist)) {
+    app.use(express.static(clientDist))
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(clientDist, 'index.html'))
+    })
+  }
+}
+
 app.post('/api/auth/login', loginRateLimit, (req, res) => {
   const { email, password } = req.body || {};
   const user = users.find((u) => u.email === email);

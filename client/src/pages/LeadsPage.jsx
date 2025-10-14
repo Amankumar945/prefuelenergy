@@ -20,12 +20,16 @@ export default function LeadsPage() {
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
   const pageSize = 6
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({ name: '', phone: '', email: '', source: 'organic', projectSizeKw: 0, acquisition: { sourceType: '', sourceChannel: '' }, owner: { role: '', person: { id: '', name: '', phone: '' } } })
 
   useEffect(() => {
-    api.get('/api/leads', { params: { page, size: pageSize } }).then((res) => setLeads(res.data.leads||[]))
+    api.get('/api/leads', { params: { page, size: pageSize } }).then((res) => {
+      setLeads(res.data.leads||[])
+      if (typeof res.data.total === 'number') setTotal(res.data.total)
+    })
     const unsub = subscribeToLive(undefined, (evt)=>{
       if (evt?.entity !== 'lead') return
       if (evt.type === 'create') setLeads((prev)=> [evt.payload, ...prev])
@@ -191,11 +195,11 @@ export default function LeadsPage() {
             <div className="text-sm text-gray-500">No leads yet.</div>
           )}
         </section>
-        {filtered.length>pageSize && (
+        {(total>pageSize) && (
           <div className="flex items-center justify-center gap-2 text-sm">
             <button disabled={page===1} onClick={()=>setPage((p)=>Math.max(1,p-1))} className="px-3 py-1.5 rounded-lg border disabled:opacity-50">Prev</button>
-            <span>Page {page} / {Math.ceil(filtered.length/pageSize)}</span>
-            <button disabled={page>=Math.ceil(filtered.length/pageSize)} onClick={()=>setPage((p)=>p+1)} className="px-3 py-1.5 rounded-lg border disabled:opacity-50">Next</button>
+            <span>Page {page} / {Math.ceil((total||0)/pageSize)}</span>
+            <button disabled={page>=Math.ceil((total||0)/pageSize)} onClick={()=>setPage((p)=>p+1)} className="px-3 py-1.5 rounded-lg border disabled:opacity-50">Next</button>
           </div>
         )}
       </div>

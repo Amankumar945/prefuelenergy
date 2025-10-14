@@ -11,6 +11,7 @@ export default function QuotesPage() {
   const [convertForm, setConvertForm] = useState({ customerName: '', siteAddress: '', capacityKw: 0 })
 
   const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
   const pageSize = 6
   useEffect(() => {
     Promise.all([
@@ -19,6 +20,7 @@ export default function QuotesPage() {
     ]).then(([l, q]) => {
       setLeads(l.data.leads || [])
       setQuotes(q.data.quotes || [])
+      if (typeof q.data.total === 'number') setTotal(q.data.total)
     })
     const unsub = subscribeToLive(undefined, (evt)=>{
       if (evt?.entity !== 'quote') return
@@ -29,7 +31,7 @@ export default function QuotesPage() {
     return unsub
   }, [page])
 
-  const total = useMemo(()=> form.items.reduce((s, it)=> s + (Number(it.qty)||0)*(Number(it.price)||0), 0), [form.items])
+  const formTotal = useMemo(()=> form.items.reduce((s, it)=> s + (Number(it.qty)||0)*(Number(it.price)||0), 0), [form.items])
 
   function updateItem(idx, patch) {
     setForm((f)=> ({...f, items: f.items.map((it, i)=> i===idx ? {...it, ...patch}: it)}))
@@ -77,7 +79,7 @@ export default function QuotesPage() {
                 <option value="">Select lead</option>
                 {leads.map((l)=> <option key={l.id} value={l.id}>{l.name} • {l.status}</option>)}
               </select>
-              <div className="sm:col-span-2 text-right text-sm text-gray-600">Total: <span className="font-semibold">₹ {total.toLocaleString()}</span></div>
+              <div className="sm:col-span-2 text-right text-sm text-gray-600">Total: <span className="font-semibold">₹ {formTotal.toLocaleString()}</span></div>
             </div>
 
             <div className="space-y-2">
@@ -117,6 +119,13 @@ export default function QuotesPage() {
             </div>
           ))}
           {quotes.length===0 && <div className="text-sm text-gray-500">No quotes yet.</div>}
+          {(total>pageSize) && (
+            <div className="md:col-span-2 lg:col-span-3 flex items-center justify-center gap-2 text-sm">
+              <button disabled={page===1} onClick={()=>setPage((p)=>Math.max(1,p-1))} className="px-3 py-1.5 rounded-lg border disabled:opacity-50">Prev</button>
+              <span>Page {page} / {Math.ceil((total||0)/pageSize)}</span>
+              <button disabled={page>=Math.ceil((total||0)/pageSize)} onClick={()=>setPage((p)=>p+1)} className="px-3 py-1.5 rounded-lg border disabled:opacity-50">Next</button>
+            </div>
+          )}
         </section>
       </div>
       <Footer />

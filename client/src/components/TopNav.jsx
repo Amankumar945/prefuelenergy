@@ -1,11 +1,12 @@
+import React, { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import DigitalClock from './DigitalClock.jsx'
 
 export default function TopNav() {
   const location = useLocation()
   const user = JSON.parse(localStorage.getItem('user') || '{}')
-  const [online, setOnline] = React.useState(true)
-  React.useEffect(()=>{
+  const [online, setOnline] = useState(true)
+  useEffect(()=>{
     function handler(e){ setOnline(!!e?.detail?.online) }
     window.addEventListener('sse:status', handler)
     return ()=> window.removeEventListener('sse:status', handler)
