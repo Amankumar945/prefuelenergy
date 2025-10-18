@@ -1362,7 +1362,8 @@ app.get('/api/attendance', authMiddleware, (req, res) => {
 app.post('/api/attendance', authMiddleware, writeRateLimit, (req, res) => {
   const { date, present = 0, absent = 0 } = req.body || {};
   attendanceRecord = { date, present: Number(present)||0, absent: Number(absent)||0 };
-  saveData();
+  // Persist snapshot to storage (fix: correct helper name)
+  persistSnapshot();
   res.json({ attendance: attendanceRecord });
 });
 
@@ -1482,13 +1483,6 @@ app.post('/api/invoices', authMiddleware, writeRateLimit, validateZod(InvoiceCre
   res.json({ invoice: { ...inv, totals } });
 }));
 
-// --- Centralized error handler ---
-// eslint-disable-next-line no-unused-vars
-app.use((err, req, res, next) => {
-  try { logAudit(req, 'system', 'error', 'n/a', { message: err?.message||'Error' }) } catch (_) {}
-  const status = err?.statusCode || err?.status || 500
-  res.status(status).json({ message: err?.message || 'Internal Server Error' })
-})
 
 app.put('/api/invoices/:id', authMiddleware, writeRateLimit, (req, res) => {
   const idx = invoices.findIndex((i) => i.id === req.params.id);
@@ -1510,6 +1504,15 @@ app.put('/api/invoices/:id', authMiddleware, writeRateLimit, (req, res) => {
   sseBroadcast({ type: 'update', entity: 'invoice', id: invoices[idx].id, payload: invoices[idx] });
   res.json({ invoice: { ...invoices[idx], totals } });
 });
+
+// Ensure the error handler is registered after all routes as well
+// so errors thrown in routes defined later are captured
+// (Express processes middleware in registration order)
+app.use((err, req, res, next) => {
+  try { logAudit(req, 'system', 'error', 'n/a', { message: err?.message||'Error' }) } catch (_) {}
+  const status = err?.statusCode || err?.status || 500
+  res.status(status).json({ message: err?.message || 'Internal Server Error' })
+})
 
 app.listen(PORT, () => {
   console.log(`Prefuel Energy API listening on http://localhost:${PORT}`);

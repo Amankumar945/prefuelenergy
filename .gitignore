@@ -18,3 +18,8 @@ Prefuel Android App/
 prefuel-android-app/
 
 
+node_modules/
+.env
+server/.env
+client/.env
+client/dist/
