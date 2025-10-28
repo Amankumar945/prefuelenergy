@@ -1011,40 +1011,6 @@
   "invoices": [
     {
       "id": "INV-202510-0001",
-      "quoteId": "q2004",
-      "customerName": "Customer",
-      "items": [
-        {
-          "description": "Solar Panel 500W",
-          "qty": 20,
-          "price": 9000,
-          "taxPercent": 18
-        },
-        {
-          "description": "String Inverter 10kW",
-          "qty": 1,
-          "price": 70000,
-          "taxPercent": 18
-        },
-        {
-          "description": "Mounting Structure (set)",
-          "qty": 1,
-          "price": 26000,
-          "taxPercent": 18
-        },
-        {
-          "description": "BOS + Installation",
-          "qty": 1,
-          "price": 24000,
-          "taxPercent": 18
-        }
-      ],
-      "status": "draft",
-      "createdAt": "2025-10-18T10:51:25.721Z",
-      "amount": 354000
-    },
-    {
-      "id": "INV-202510-0001",
       "quoteId": "q2002",
       "customerName": "Meera Gupta",
       "items": [

@@ -50,7 +50,7 @@ export default function DashboardPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white via-brand/5 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-white via-gray-50 to-white">
       <TopNav />
 
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-6 animate-fadein">
@@ -100,7 +100,7 @@ export default function DashboardPage() {
             title="Pipeline"
             value={stats ? stats.pipeline?.total : '—'}
             subtitle={stats ? `New ${stats.pipeline?.new||0} • Qualified ${stats.pipeline?.qualified||0}` : ''}
-            accent="text-amber-600"
+            accent="text-emerald-600"
           />
           <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 flex items-center justify-between">
             <div>
@@ -125,9 +125,9 @@ export default function DashboardPage() {
               <div className="text-xs text-gray-600">Working now</div>
               <div className="text-xl font-semibold text-brand">{stats ? stats.projects?.working : '—'} Live</div>
             </div>
-            <div className="p-4 rounded-xl bg-solar-yellow/10 border border-solar-yellow/30">
+            <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200">
               <div className="text-xs text-gray-600">Next up</div>
-              <div className="text-xl font-semibold text-amber-600">{stats ? stats.projects?.not_started : '—'} Upcoming</div>
+              <div className="text-xl font-semibold text-emerald-600">{stats ? stats.projects?.not_started : '—'} Upcoming</div>
             </div>
             <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
               <div className="text-xs text-gray-600">Completed</div>

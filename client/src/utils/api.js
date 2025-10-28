@@ -1,11 +1,31 @@
 import axios from 'axios'
 
-// Use Vite env first, then smart fallback to localhost server
-const baseURL = (import.meta?.env?.VITE_API_BASE_URL)
-  || (typeof window !== 'undefined' ? (window.__API_BASE_URL__ || window.location.origin.replace(':5173', ':5000')) : 'http://localhost:5000')
+// Resolve API base URL at runtime first to avoid shipping localhost in the bundle.
+function resolveApiBaseUrl() {
+  const fromEnv = (import.meta?.env?.VITE_API_BASE_URL);
+  if (typeof window !== 'undefined') {
+    // Highest priority: runtime override injected in index.html
+    if (window.__API_BASE_URL__) return String(window.__API_BASE_URL__);
+
+    // Next: build-time env if provided
+    if (fromEnv) return String(fromEnv);
+
+    // Fallback: derive API subdomain from current host in production
+    const { protocol, hostname } = window.location;
+    const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
+    if (isLocal) {
+      // Local dev: prefer Vite env; if missing, default to same host on :5000
+      return `${protocol}//${hostname}:5000`;
+    }
+    const apiHost = hostname.startsWith('api.') ? hostname : `api.${hostname}`;
+    return `${protocol}//${apiHost}`;
+  }
+  // SSR/build time: do not hardcode anything
+  return fromEnv || ''
+}
 
 export const api = axios.create({
-  baseURL,
+  baseURL: resolveApiBaseUrl(),
 })
 
 api.interceptors.request.use((config) => {

@@ -29,7 +29,7 @@ export default function DigitalClock() {
   const display = formatIST(now)
 
   return (
-    <div className="inline-flex items-center text-xs text-gray-700 font-mono px-2 py-1 rounded-lg bg-white/70 border border-gray-200 shadow-sm animate-fadein whitespace-nowrap">
+    <div className="inline-flex items-center text-xs text-gray-700 font-mono px-2 py-1 rounded-lg bg-white border border-gray-200 shadow-sm animate-fadein whitespace-nowrap">
       {display} IST
     </div>
   )

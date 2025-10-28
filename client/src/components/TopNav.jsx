@@ -21,10 +21,10 @@ export default function TopNav() {
   const isActive = (path) => location.pathname === path
 
   return (
-    <header className="bg-white/80 backdrop-blur border-b border-gray-100">
+    <header className="bg-white border-b border-gray-100">
       <div className="max-w-7xl mx-auto px-4 min-h-24 py-3 flex items-start justify-between relative">
         <div className="flex items-start gap-3">
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-brand to-solar.amber animate-float" />
+          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-brand to-blue-500 animate-float" />
           <div className="flex flex-col leading-tight">
             <div className="font-semibold">Green Tree • Prefuel Energy</div>
             <div className="mt-0.5"><DigitalClock /></div>

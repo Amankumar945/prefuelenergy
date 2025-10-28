@@ -46,11 +46,11 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand/10 via-solar.yellow/10 to-white p-4">
-      <div className="absolute inset-x-0 -top-20 -z-10 h-64 bg-gradient-to-r from-brand to-solar.amber opacity-20 blur-3xl" />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand/10 via-blue-50 to-white p-4">
+      <div className="absolute inset-x-0 -top-20 -z-10 h-64 bg-gradient-to-r from-brand to-blue-500 opacity-20 blur-3xl" />
       <div className="w-full max-w-2xl bg-white shadow-xl rounded-2xl p-8 border border-gray-100 animate-fadein">
         <div className="mb-6 flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-brand to-solar.amber animate-float" />
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-brand to-blue-500 animate-float" />
           <div>
             <h1 className="text-xl font-semibold text-gray-900">Green Tree • Prefuel Energy</h1>
             <p className="text-xs text-gray-500">Solar Rooftop Scheme — India</p>
@@ -79,7 +79,7 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={() => handleSelectRole('hr')}
-            className={`rounded-2xl p-5 border transition hover:shadow ${selectedRole==='hr' ? 'border-amber-500 bg-amber-50' : 'border-gray-200 bg-gray-50'}`}
+            className={`rounded-2xl p-5 border transition hover:shadow ${selectedRole==='hr' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-gray-50'}`}
           >
             <div className="text-sm text-gray-500">Login as</div>
             <div className="text-lg font-semibold">HR</div>

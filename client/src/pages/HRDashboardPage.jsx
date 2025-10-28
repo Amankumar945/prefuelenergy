@@ -80,7 +80,7 @@ export default function HRDashboardPage() {
           <Card title="Quick Actions">
             <div className="flex flex-wrap gap-2">
               <button onClick={() => setOpenAdd(true)} className="px-3 py-2 rounded-lg bg-brand text-white hover:bg-brand-dark text-sm shadow-sm">Add Employee</button>
-              <button onClick={() => setOpenAtt(true)} className="px-3 py-2 rounded-lg bg-amber-500 text-white hover:bg-amber-600 text-sm shadow-sm">Mark Attendance</button>
+              <button onClick={() => setOpenAtt(true)} className="px-3 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 text-sm shadow-sm">Mark Attendance</button>
               <button onClick={() => setOpenLeaves(true)} className="px-3 py-2 rounded-lg bg-sky-500 text-white hover:bg-sky-600 text-sm shadow-sm">Approve Leave</button>
             </div>
           </Card>
@@ -106,7 +106,7 @@ export default function HRDashboardPage() {
                 <div key={l.id} className="p-3 rounded-lg bg-gray-50 border flex items-center justify-between">
                   <div>
                     {l.name} • {l.days} {l.days>1?'days':'day'} • {l.date}
-                    <span className={`ml-2 text-[10px] px-2 py-0.5 rounded-full border ${l.status==='pending'?'bg-amber-50 text-amber-700 border-amber-200': l.status==='approved'?'bg-green-50 text-green-700 border-green-200':'bg-red-50 text-red-700 border-red-200'}`}>{l.status}</span>
+                    <span className={`ml-2 text-[10px] px-2 py-0.5 rounded-full border ${l.status==='pending'?'bg-blue-50 text-blue-700 border-blue-200': l.status==='approved'?'bg-green-50 text-green-700 border-green-200':'bg-red-50 text-red-700 border-red-200'}`}>{l.status}</span>
                   </div>
                   {l.status === 'pending' && (
                     <div className="flex gap-2">
@@ -175,7 +175,7 @@ export default function HRDashboardPage() {
             <div key={l.id} className="p-3 rounded-lg bg-gray-50 border flex items-center justify-between">
               <div>
                 {l.name} • {l.days} {l.days>1?'days':'day'} • {l.date}
-                <span className={`ml-2 text-[10px] px-2 py-0.5 rounded-full border ${l.status==='pending'?'bg-amber-50 text-amber-700 border-amber-200': l.status==='approved'?'bg-green-50 text-green-700 border-green-200':'bg-red-50 text-red-700 border-red-200'}`}>{l.status}</span>
+                <span className={`ml-2 text-[10px] px-2 py-0.5 rounded-full border ${l.status==='pending'?'bg-blue-50 text-blue-700 border-blue-200': l.status==='approved'?'bg-green-50 text-green-700 border-green-200':'bg-red-50 text-red-700 border-red-200'}`}>{l.status}</span>
               </div>
               {l.status === 'pending' && (
                 <div className="flex gap-2">

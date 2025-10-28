@@ -147,7 +147,7 @@ export default function InventoryPage() {
 
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {paged.map((it)=>(
-            <div key={it.id} className={`border rounded-2xl p-5 bg-white shadow-sm ${it.stock<=it.minStock?'ring-1 ring-amber-300':''}`}>
+            <div key={it.id} className={`border rounded-2xl p-5 bg-white shadow-sm ${it.stock<=it.minStock?'ring-1 ring-red-300':''}`}>
               <div className="flex items-center justify-between">
                 <div className="font-medium">{it.name}</div>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100">{it.sku}</span>

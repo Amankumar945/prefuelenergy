@@ -12,10 +12,6 @@ export default {
           dark: '#15803d',
           light: '#86efac',
         },
-        solar: {
-          yellow: '#fef08a',
-          amber: '#f59e0b',
-        },
       },
       keyframes: {
         float: {
