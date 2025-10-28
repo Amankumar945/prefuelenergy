@@ -11,11 +11,19 @@ const path = require('path');
 const { loadSnapshot, saveSnapshot } = require('./storage/index.js');
 
 const app = express();
+// MilesWeb will provide PORT via environment variable
 const PORT = process.env.PORT || 5000;
-const JWT_SECRET = process.env.JWT_SECRET || 'prefuel_energy_dev_secret_please_change';
-const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173';
+const JWT_SECRET = process.env.JWT_SECRET || 'prefuel_energy_production_secret_2025';
+const CORS_ORIGIN = process.env.CORS_ORIGIN || 'https://sorsuvidhacloudsystems.com';
 
-app.use(cors({ origin: CORS_ORIGIN, credentials: true }));
+// Simple CORS - allow all origins for now (can restrict later if needed)
+app.use(cors({
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
 app.use(express.json());
 app.use(helmet());
 app.use(compression());
