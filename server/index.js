@@ -16,18 +16,47 @@ const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'prefuel_energy_production_secret_2025';
 const CORS_ORIGIN = process.env.CORS_ORIGIN || 'https://sorsuvidhacloudsystems.com';
 
-// Simple CORS - allow all origins for now (can restrict later if needed)
+// Hardened CORS: honor configured origin; allow same-origin and api subdomain
+function resolveCorsOrigin(origin, callback) {
+  try {
+    if (!origin) return callback(null, true);
+    const allowed = new Set([
+      CORS_ORIGIN,
+      CORS_ORIGIN.replace(/^https?:\/\//,'').replace(/\/$/,'')
+    ]);
+    const oHost = origin.replace(/^https?:\/\//,'').replace(/\/$/,'');
+    // Allow api.<host> and <host>
+    const hostBase = CORS_ORIGIN.replace(/^https?:\/\//,'').replace(/\/$/,'');
+    const apiHost = hostBase.startsWith('api.') ? hostBase : `api.${hostBase}`;
+    if (allowed.has(origin) || allowed.has(oHost) || oHost === hostBase || oHost === apiHost) {
+      return callback(null, true);
+    }
+  } catch (_) {}
+  return callback(null, false);
+}
 app.use(cors({
-  origin: true,
+  origin: resolveCorsOrigin,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
-app.use(express.json());
+// Respect proxy headers (MilesWeb, etc.)
+app.set('trust proxy', true);
+
+// JSON body limit to prevent abuse
+app.use(express.json({ limit: '1mb' }));
 app.use(helmet());
 app.use(compression());
 app.use(morgan('tiny'));
+
+// API responses should not be cached by intermediaries
+app.use((req, res, next) => {
+  if (req.path && req.path.startsWith('/api/')) {
+    res.setHeader('Cache-Control', 'no-store');
+  }
+  next();
+});
 
 // --- Simple SSE (Server-Sent Events) hub for real-time updates ---
 const sseClients = new Set();
