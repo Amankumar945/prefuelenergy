@@ -716,7 +716,10 @@ function seedInventoryDefaults() {
   if (added) persistSnapshot();
 }
 
-seedInventoryDefaults();
+const ENABLE_SEED = String(process.env.DISABLE_SEED||'false').toLowerCase() !== 'true'
+if (ENABLE_SEED) {
+  seedInventoryDefaults();
+}
 
 // Replace generic inverter with brand-specific 3–5 kW models (idempotent)
 function seedInverterModels() {
@@ -753,7 +756,9 @@ function seedInverterModels() {
   if (changed) persistSnapshot();
 }
 
-seedInverterModels();
+if (ENABLE_SEED) {
+  seedInverterModels();
+}
 
 // Seed branded solar panel models (idempotent)
 function seedPanelModels() {
@@ -778,7 +783,9 @@ function seedPanelModels() {
   if (changed) persistSnapshot();
 }
 
-seedPanelModels();
+if (ENABLE_SEED) {
+  seedPanelModels();
+}
 
 // Audit helper
 function logAudit(req, entity, action, entityId, details) {
