@@ -27,6 +27,7 @@ export default function ProcurementPage() {
       if (evt?.entity === 'purchaseOrder') {
         if (evt.type === 'create') setPos((prev)=> [evt.payload, ...prev])
         if (evt.type === 'update') setPos((prev)=> prev.map((p)=> p.id===evt.id? evt.payload: p))
+        if (evt.type === 'bulk' && Array.isArray(evt.payload)) setPos(evt.payload)
       }
     })
     return unsub

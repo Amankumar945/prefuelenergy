@@ -95,6 +95,7 @@ export default function ProjectsPage() {
       if (evt?.entity !== 'project') return
       if (evt.type === 'create') setData((prev)=> [evt.payload, ...prev])
       if (evt.type === 'update') setData((prev)=> prev.map((p)=> p.id===evt.id? evt.payload: p))
+      if (evt.type === 'bulk') setData(Array.isArray(evt.payload)? evt.payload : [])
     })
     return unsub
   }, [])

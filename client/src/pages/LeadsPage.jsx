@@ -35,6 +35,7 @@ export default function LeadsPage() {
       if (evt.type === 'create') setLeads((prev)=> [evt.payload, ...prev])
       if (evt.type === 'update') setLeads((prev)=> prev.map((l)=> l.id===evt.id? evt.payload: l))
       if (evt.type === 'delete') setLeads((prev)=> prev.filter((l)=> l.id!==evt.id))
+      if (evt.type === 'bulk') setLeads(Array.isArray(evt.payload)? evt.payload : [])
     })
     return unsub
   }, [page])

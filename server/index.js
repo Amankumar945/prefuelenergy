@@ -1092,6 +1092,10 @@ app.post('/api/projects/:id/milestones', authMiddleware, writeRateLimit, (req, r
   if (acquisition) project.acquisition = acquisition;
   if (followUp) project.followUp = followUp;
   project.installation.lastUpdated = new Date().toISOString().slice(0,10);
+  // Persist and notify live clients so dashboards and lists refresh
+  persistSnapshot();
+  try { sseBroadcast({ type: 'update', entity: 'project', id: project.id, payload: project }); } catch (_) {}
+  try { logAudit(req, 'project', 'update', project.id, { fields: Object.keys(req.body||{}) }); } catch (_) {}
   res.json({ ok: true, project });
 });
 
@@ -1511,6 +1515,49 @@ app.put('/api/invoices/:id', authMiddleware, writeRateLimit, (req, res) => {
   persistSnapshot();
   sseBroadcast({ type: 'update', entity: 'invoice', id: invoices[idx].id, payload: invoices[idx] });
   res.json({ invoice: { ...invoices[idx], totals } });
+});
+
+// Admin: Reset all data to a clean state (dangerous). Admin only.
+app.post('/api/admin/reset-data', authMiddleware, writeRateLimit, requireRole('admin'), (req, res) => {
+  try {
+    // Clear arrays
+    projects.length = 0;
+    leadsData.length = 0;
+    items.length = 0;
+    purchaseOrders.length = 0;
+    quotes.length = 0;
+    documents.length = 0;
+    tasks.length = 0;
+    serviceTickets.length = 0;
+    invoices.length = 0;
+    announcements.length = 0;
+    auditLogs.length = 0;
+    // Reset simple objects
+    attendanceRecord = { date: '', present: 0, absent: 0 };
+    try { Object.keys(leads).forEach((k)=> leads[k] = 0) } catch (_) {}
+    try { teleCallers.length = 0 } catch (_) {}
+    try { conversions.total = 0; if (conversions.bySource) { Object.keys(conversions.bySource).forEach((k)=> conversions.bySource[k] = 0) } } catch (_) {}
+
+    // Persist empty snapshot
+    persistSnapshot();
+
+    // Broadcast clears so connected clients can react
+    try { sseBroadcast({ type: 'bulk', entity: 'project', payload: [] }) } catch (_) {}
+    try { sseBroadcast({ type: 'bulk', entity: 'lead', payload: [] }) } catch (_) {}
+    try { sseBroadcast({ type: 'bulk', entity: 'item', payload: [] }) } catch (_) {}
+    try { sseBroadcast({ type: 'bulk', entity: 'purchaseOrder', payload: [] }) } catch (_) {}
+    try { sseBroadcast({ type: 'bulk', entity: 'quote', payload: [] }) } catch (_) {}
+    try { sseBroadcast({ type: 'bulk', entity: 'document', payload: [] }) } catch (_) {}
+    try { sseBroadcast({ type: 'bulk', entity: 'task', payload: [] }) } catch (_) {}
+    try { sseBroadcast({ type: 'bulk', entity: 'serviceTicket', payload: [] }) } catch (_) {}
+    try { sseBroadcast({ type: 'bulk', entity: 'invoice', payload: [] }) } catch (_) {}
+    try { sseBroadcast({ type: 'bulk', entity: 'announcement', payload: [] }) } catch (_) {}
+
+    try { logAudit(req, 'system', 'reset', 'all', { by: req?.user?.email||'admin' }) } catch (_) {}
+    res.json({ ok: true })
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to reset data' })
+  }
 });
 
 // Ensure the error handler is registered after all routes as well

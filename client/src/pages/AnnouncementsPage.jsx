@@ -17,6 +17,7 @@ export default function AnnouncementsPage() {
       if (evt.type === 'create') setList((prev)=> [evt.payload, ...prev])
       if (evt.type === 'update') setList((prev)=> prev.map((a)=> a.id===evt.id? evt.payload: a))
       if (evt.type === 'delete') setList((prev)=> prev.filter((a)=> a.id!==evt.id))
+      if (evt.type === 'bulk') setList(Array.isArray(evt.payload)? evt.payload : [])
     })
     return unsub
   }, [])

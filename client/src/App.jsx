@@ -12,6 +12,7 @@ import ServicePage from './pages/ServicePage.jsx'
 import InvoicesPage from './pages/InvoicesPage.jsx'
 import AnnouncementsPage from './pages/AnnouncementsPage.jsx'
 import ReportsPage from './pages/ReportsPage.jsx'
+import AdminProfilePage from './pages/AdminProfilePage.jsx'
 
 function RequireAuth({ children }) {
   const token = localStorage.getItem('token')
@@ -145,6 +146,16 @@ export default function App() {
           element={
             <RequireAuth>
               <AnnouncementsPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <RequireAuth>
+              <RequireRole role="admin">
+                <AdminProfilePage />
+              </RequireRole>
             </RequireAuth>
           }
         />

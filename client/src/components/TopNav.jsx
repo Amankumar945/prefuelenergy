@@ -93,14 +93,14 @@ export default function TopNav() {
               <span className="hidden sm:inline">{online?'Live':'Offline'}</span>
             </span>
 
-            {/* User Info - Desktop Only */}
-            <span className="hidden lg:inline-flex items-center gap-2 text-gray-700">
+            {/* User Info - Desktop Only (clickable to Admin profile) */}
+            <Link to={user?.role==='admin' ? '/admin' : '#'} className="hidden lg:inline-flex items-center gap-2 text-gray-700">
               <span className="px-2 py-0.5 rounded-md bg-gray-100 border text-xs">
                 <span className="font-medium">{user?.name || 'User'}</span>
                 <span className="mx-1 text-gray-400">•</span>
                 <span className="uppercase tracking-wide text-[10px] px-1.5 py-0.5 rounded bg-white border">{user?.role || 'role'}</span>
               </span>
-            </span>
+            </Link>
 
             {/* Logout Button - Desktop */}
             <button onClick={logout} className="hidden lg:flex px-3 py-1.5 rounded-lg bg-brand text-white hover:bg-brand-dark text-sm whitespace-nowrap">
@@ -124,11 +124,11 @@ export default function TopNav() {
         {mobileMenuOpen && (
           <div className="lg:hidden mt-3 pb-2 border-t border-gray-100 pt-3">
             <nav className="flex flex-col gap-1">
-              {/* User Info - Mobile */}
-              <div className="px-3 py-2 mb-2 rounded-lg bg-gray-50 border border-gray-200">
+              {/* User Info - Mobile (clickable) */}
+              <Link to={user?.role==='admin' ? '/admin' : '#'} onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 mb-2 rounded-lg bg-gray-50 border border-gray-200 block">
                 <div className="text-sm font-medium text-gray-900">{user?.name || 'User'}</div>
                 <div className="text-xs text-gray-500 uppercase mt-0.5">{user?.role || 'role'}</div>
-              </div>
+              </Link>
 
               {(user?.role === 'admin' || user?.role === 'staff') && (
                 <Link to="/" onClick={() => setMobileMenuOpen(false)} className={`px-3 py-2.5 rounded-lg hover:bg-gray-50 ${isActive('/') ? 'text-brand font-medium bg-brand/5' : 'text-gray-700'}`}>

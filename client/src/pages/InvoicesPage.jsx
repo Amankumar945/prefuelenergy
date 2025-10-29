@@ -32,10 +32,12 @@ export default function InvoicesPage() {
       if (evt?.entity === 'invoice') {
         if (evt.type === 'create') setInvoices((prev)=> [evt.payload, ...prev])
         if (evt.type === 'update') setInvoices((prev)=> prev.map((i)=> i.id===evt.id? evt.payload: i))
+        if (evt.type === 'bulk') setInvoices(Array.isArray(evt.payload)? evt.payload : [])
       }
       if (evt?.entity === 'quote') {
         if (evt.type === 'create') setQuotes((prev)=> [evt.payload, ...prev])
         if (evt.type === 'update') setQuotes((prev)=> prev.map((qq)=> qq.id===evt.id? evt.payload: qq))
+        if (evt.type === 'bulk') setQuotes(Array.isArray(evt.payload)? evt.payload : [])
       }
     })
     return unsub

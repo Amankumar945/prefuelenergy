@@ -27,6 +27,7 @@ export default function QuotesPage() {
       if (evt.type === 'create') setQuotes((prev)=> [evt.payload, ...prev])
       if (evt.type === 'update') setQuotes((prev)=> prev.map((qq)=> qq.id===evt.id? evt.payload: qq))
       if (evt.type === 'delete') setQuotes((prev)=> prev.filter((qq)=> qq.id!==evt.id))
+      if (evt.type === 'bulk') setQuotes(Array.isArray(evt.payload)? evt.payload : [])
     })
     return unsub
   }, [page])
