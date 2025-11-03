@@ -4,3 +4,4 @@
 PORT=5000
 JWT_SECRET=change_me_in_production
 CORS_ORIGIN=http://localhost:5173
+SEED_ON_START=false

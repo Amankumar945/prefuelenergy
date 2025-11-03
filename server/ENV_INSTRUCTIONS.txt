@@ -7,13 +7,12 @@ Create a file named ".env" in the server folder with these contents:
 NODE_ENV=production
 JWT_SECRET=prefuel_energy_production_secret_change_me_2025
 CORS_ORIGIN=https://sorsuvidhacloudsystems.com
-DISABLE_SEED=true
+SEED_ON_START=false
 
 IMPORTANT NOTES:
 - Do NOT set PORT in .env file - MilesWeb sets it automatically
 - Change JWT_SECRET to a strong random string
 - Make sure CORS_ORIGIN matches your main domain exactly
- - Set DISABLE_SEED=true in production if you want a completely empty system after reset and across restarts.
 
 ===========================================
 

@@ -15,48 +15,20 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'prefuel_energy_production_secret_2025';
 const CORS_ORIGIN = process.env.CORS_ORIGIN || 'https://sorsuvidhacloudsystems.com';
+const SEED_ON_START = String(process.env.SEED_ON_START || 'false').toLowerCase() === 'true';
 
-// Hardened CORS: honor configured origin; allow same-origin and api subdomain
-function resolveCorsOrigin(origin, callback) {
-  try {
-    if (!origin) return callback(null, true);
-    const allowed = new Set([
-      CORS_ORIGIN,
-      CORS_ORIGIN.replace(/^https?:\/\//,'').replace(/\/$/,'')
-    ]);
-    const oHost = origin.replace(/^https?:\/\//,'').replace(/\/$/,'');
-    // Allow api.<host> and <host>
-    const hostBase = CORS_ORIGIN.replace(/^https?:\/\//,'').replace(/\/$/,'');
-    const apiHost = hostBase.startsWith('api.') ? hostBase : `api.${hostBase}`;
-    if (allowed.has(origin) || allowed.has(oHost) || oHost === hostBase || oHost === apiHost) {
-      return callback(null, true);
-    }
-  } catch (_) {}
-  return callback(null, false);
-}
+// Simple CORS - allow all origins for now (can restrict later if needed)
 app.use(cors({
-  origin: resolveCorsOrigin,
+  origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
-// Respect proxy headers (MilesWeb, etc.)
-app.set('trust proxy', true);
-
-// JSON body limit to prevent abuse
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json());
 app.use(helmet());
 app.use(compression());
 app.use(morgan('tiny'));
-
-// API responses should not be cached by intermediaries
-app.use((req, res, next) => {
-  if (req.path && req.path.startsWith('/api/')) {
-    res.setHeader('Cache-Control', 'no-store');
-  }
-  next();
-});
 
 // --- Simple SSE (Server-Sent Events) hub for real-time updates ---
 const sseClients = new Set();
@@ -175,6 +147,13 @@ const users = [
     email: 'hr@prefuel',
     role: 'hr',
     password: 'Hr@2025!',
+  },
+  {
+    id: 'u4',
+    name: 'PK User',
+    email: 'pk5099985@gmail.com',
+    role: 'ops',
+    password: '9105928915',
   },
 ];
 
@@ -745,10 +724,7 @@ function seedInventoryDefaults() {
   if (added) persistSnapshot();
 }
 
-const ENABLE_SEED = String(process.env.DISABLE_SEED||'false').toLowerCase() !== 'true'
-if (ENABLE_SEED) {
-  seedInventoryDefaults();
-}
+if (SEED_ON_START) seedInventoryDefaults();
 
 // Replace generic inverter with brand-specific 3–5 kW models (idempotent)
 function seedInverterModels() {
@@ -785,9 +761,7 @@ function seedInverterModels() {
   if (changed) persistSnapshot();
 }
 
-if (ENABLE_SEED) {
-  seedInverterModels();
-}
+if (SEED_ON_START) seedInverterModels();
 
 // Seed branded solar panel models (idempotent)
 function seedPanelModels() {
@@ -812,9 +786,7 @@ function seedPanelModels() {
   if (changed) persistSnapshot();
 }
 
-if (ENABLE_SEED) {
-  seedPanelModels();
-}
+if (SEED_ON_START) seedPanelModels();
 
 // Audit helper
 function logAudit(req, entity, action, entityId, details) {

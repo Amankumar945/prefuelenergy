@@ -45,7 +45,7 @@ export default function App() {
           path="/"
           element={
             <RequireAuth>
-              <RequireRoles roles={["admin", "staff"]}>
+              <RequireRoles roles={["admin", "staff", "ops"]}>
                 <DashboardPage />
               </RequireRoles>
             </RequireAuth>
@@ -65,7 +65,7 @@ export default function App() {
           path="/projects"
           element={
             <RequireAuth>
-              <RequireRoles roles={["admin", "staff"]}>
+              <RequireRoles roles={["admin", "staff", "ops"]}>
                 <ProjectsPage />
               </RequireRoles>
             </RequireAuth>
@@ -75,7 +75,7 @@ export default function App() {
           path="/projects/:id"
           element={
             <RequireAuth>
-              <RequireRoles roles={["admin", "staff"]}>
+              <RequireRoles roles={["admin", "staff", "ops"]}>
                 <ProjectDetailsPage />
               </RequireRoles>
             </RequireAuth>
@@ -95,7 +95,7 @@ export default function App() {
           path="/inventory"
           element={
             <RequireAuth>
-              <RequireRoles roles={["admin", "staff"]}>
+              <RequireRoles roles={["admin", "staff", "ops"]}>
                 <InventoryPage />
               </RequireRoles>
             </RequireAuth>
@@ -145,7 +145,9 @@ export default function App() {
           path="/announcements"
           element={
             <RequireAuth>
-              <AnnouncementsPage />
+              <RequireRoles roles={["admin", "staff", "hr"]}>
+                <AnnouncementsPage />
+              </RequireRoles>
             </RequireAuth>
           }
         />
@@ -163,7 +165,9 @@ export default function App() {
           path="/reports"
           element={
             <RequireAuth>
-              <ReportsPage />
+              <RequireRoles roles={["admin", "staff", "hr"]}>
+                <ReportsPage />
+              </RequireRoles>
             </RequireAuth>
           }
         />

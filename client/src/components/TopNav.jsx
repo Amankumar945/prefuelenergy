@@ -38,7 +38,7 @@ export default function TopNav() {
 
           {/* Desktop Navigation - Hidden on Mobile */}
           <nav className="hidden lg:flex items-center gap-2 xl:gap-3 text-sm mx-4 flex-wrap">
-            {(user?.role === 'admin' || user?.role === 'staff') && (
+            {(user?.role === 'admin' || user?.role === 'staff' || user?.role === 'ops') && (
               <Link to="/" className={`px-2 xl:px-3 py-1.5 rounded-lg hover:bg-gray-50 whitespace-nowrap ${isActive('/') ? 'text-brand font-medium' : 'text-gray-700'}`}>
                 Dashboard
               </Link>
@@ -53,17 +53,21 @@ export default function TopNav() {
                 HR
               </Link>
             )}
-            {(user?.role === 'admin' || user?.role === 'staff') && (
+            {(user?.role === 'admin' || user?.role === 'staff' || user?.role === 'ops') && (
               <Link to="/projects" className={`px-2 xl:px-3 py-1.5 rounded-lg hover:bg-gray-50 whitespace-nowrap ${isActive('/projects') ? 'text-brand font-medium' : 'text-gray-700'}`}>
                 Projects
               </Link>
             )}
-            <Link to="/reports" className={`px-2 xl:px-3 py-1.5 rounded-lg hover:bg-gray-50 whitespace-nowrap ${isActive('/reports') ? 'text-brand font-medium' : 'text-gray-700'}`}>
-              Reports
-            </Link>
-            <Link to="/announcements" className={`px-2 xl:px-3 py-1.5 rounded-lg hover:bg-gray-50 whitespace-nowrap ${isActive('/announcements') ? 'text-brand font-medium' : 'text-gray-700'}`}>
-              Announcements
-            </Link>
+            {(user?.role === 'admin' || user?.role === 'staff' || user?.role === 'hr') && (
+              <Link to="/reports" className={`px-2 xl:px-3 py-1.5 rounded-lg hover:bg-gray-50 whitespace-nowrap ${isActive('/reports') ? 'text-brand font-medium' : 'text-gray-700'}`}>
+                Reports
+              </Link>
+            )}
+            {(user?.role === 'admin' || user?.role === 'staff' || user?.role === 'hr') && (
+              <Link to="/announcements" className={`px-2 xl:px-3 py-1.5 rounded-lg hover:bg-gray-50 whitespace-nowrap ${isActive('/announcements') ? 'text-brand font-medium' : 'text-gray-700'}`}>
+                Announcements
+              </Link>
+            )}
             {(user?.role === 'admin' || user?.role === 'staff') && (
               <>
                 <Link to="/service" className={`px-2 xl:px-3 py-1.5 rounded-lg hover:bg-gray-50 whitespace-nowrap ${isActive('/service') ? 'text-brand font-medium' : 'text-gray-700'}`}>
@@ -72,9 +76,6 @@ export default function TopNav() {
                 <Link to="/invoices" className={`px-2 xl:px-3 py-1.5 rounded-lg hover:bg-gray-50 whitespace-nowrap ${isActive('/invoices') ? 'text-brand font-medium' : 'text-gray-700'}`}>
                   Invoices
                 </Link>
-                <Link to="/inventory" className={`px-2 xl:px-3 py-1.5 rounded-lg hover:bg-gray-50 whitespace-nowrap ${isActive('/inventory') ? 'text-brand font-medium' : 'text-gray-700'}`}>
-                  Inventory
-                </Link>
                 <Link to="/procurement" className={`px-2 xl:px-3 py-1.5 rounded-lg hover:bg-gray-50 whitespace-nowrap ${isActive('/procurement') ? 'text-brand font-medium' : 'text-gray-700'}`}>
                   Procurement
                 </Link>
@@ -82,6 +83,11 @@ export default function TopNav() {
                   Quotes
                 </Link>
               </>
+            )}
+            {user?.role === 'ops' && (
+              <Link to="/inventory" className={`px-2 xl:px-3 py-1.5 rounded-lg hover:bg-gray-50 whitespace-nowrap ${isActive('/inventory') ? 'text-brand font-medium' : 'text-gray-700'}`}>
+                Inventory
+              </Link>
             )}
           </nav>
 
@@ -130,7 +136,7 @@ export default function TopNav() {
                 <div className="text-xs text-gray-500 uppercase mt-0.5">{user?.role || 'role'}</div>
               </Link>
 
-              {(user?.role === 'admin' || user?.role === 'staff') && (
+              {(user?.role === 'admin' || user?.role === 'staff' || user?.role === 'ops') && (
                 <Link to="/" onClick={() => setMobileMenuOpen(false)} className={`px-3 py-2.5 rounded-lg hover:bg-gray-50 ${isActive('/') ? 'text-brand font-medium bg-brand/5' : 'text-gray-700'}`}>
                   Dashboard
                 </Link>
@@ -145,17 +151,21 @@ export default function TopNav() {
                   HR Dashboard
                 </Link>
               )}
-              {(user?.role === 'admin' || user?.role === 'staff') && (
+              {(user?.role === 'admin' || user?.role === 'staff' || user?.role === 'ops') && (
                 <Link to="/projects" onClick={() => setMobileMenuOpen(false)} className={`px-3 py-2.5 rounded-lg hover:bg-gray-50 ${isActive('/projects') ? 'text-brand font-medium bg-brand/5' : 'text-gray-700'}`}>
                   Projects
                 </Link>
               )}
-              <Link to="/reports" onClick={() => setMobileMenuOpen(false)} className={`px-3 py-2.5 rounded-lg hover:bg-gray-50 ${isActive('/reports') ? 'text-brand font-medium bg-brand/5' : 'text-gray-700'}`}>
-                Reports
-              </Link>
-              <Link to="/announcements" onClick={() => setMobileMenuOpen(false)} className={`px-3 py-2.5 rounded-lg hover:bg-gray-50 ${isActive('/announcements') ? 'text-brand font-medium bg-brand/5' : 'text-gray-700'}`}>
-                Announcements
-              </Link>
+              {(user?.role === 'admin' || user?.role === 'staff' || user?.role === 'hr') && (
+                <Link to="/reports" onClick={() => setMobileMenuOpen(false)} className={`px-3 py-2.5 rounded-lg hover:bg-gray-50 ${isActive('/reports') ? 'text-brand font-medium bg-brand/5' : 'text-gray-700'}`}>
+                  Reports
+                </Link>
+              )}
+              {(user?.role === 'admin' || user?.role === 'staff' || user?.role === 'hr') && (
+                <Link to="/announcements" onClick={() => setMobileMenuOpen(false)} className={`px-3 py-2.5 rounded-lg hover:bg-gray-50 ${isActive('/announcements') ? 'text-brand font-medium bg-brand/5' : 'text-gray-700'}`}>
+                  Announcements
+                </Link>
+              )}
               {(user?.role === 'admin' || user?.role === 'staff') && (
                 <>
                   <Link to="/service" onClick={() => setMobileMenuOpen(false)} className={`px-3 py-2.5 rounded-lg hover:bg-gray-50 ${isActive('/service') ? 'text-brand font-medium bg-brand/5' : 'text-gray-700'}`}>
@@ -164,9 +174,6 @@ export default function TopNav() {
                   <Link to="/invoices" onClick={() => setMobileMenuOpen(false)} className={`px-3 py-2.5 rounded-lg hover:bg-gray-50 ${isActive('/invoices') ? 'text-brand font-medium bg-brand/5' : 'text-gray-700'}`}>
                     Invoices
                   </Link>
-                  <Link to="/inventory" onClick={() => setMobileMenuOpen(false)} className={`px-3 py-2.5 rounded-lg hover:bg-gray-50 ${isActive('/inventory') ? 'text-brand font-medium bg-brand/5' : 'text-gray-700'}`}>
-                    Inventory
-                  </Link>
                   <Link to="/procurement" onClick={() => setMobileMenuOpen(false)} className={`px-3 py-2.5 rounded-lg hover:bg-gray-50 ${isActive('/procurement') ? 'text-brand font-medium bg-brand/5' : 'text-gray-700'}`}>
                     Procurement
                   </Link>
@@ -174,6 +181,11 @@ export default function TopNav() {
                     Quotes
                   </Link>
                 </>
+              )}
+              {user?.role === 'ops' && (
+                <Link to="/inventory" onClick={() => setMobileMenuOpen(false)} className={`px-3 py-2.5 rounded-lg hover:bg-gray-50 ${isActive('/inventory') ? 'text-brand font-medium bg-brand/5' : 'text-gray-700'}`}>
+                  Inventory
+                </Link>
               )}
               
               {/* Logout Button - Mobile */}
