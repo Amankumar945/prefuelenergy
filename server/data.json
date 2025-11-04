@@ -1,6 +1,72 @@
 {
   "projects": [
     {
+      "id": "p1762240858832",
+      "customerName": "Jaiswal",
+      "siteAddress": "Bareilly",
+      "scheme": "Rooftop Solar Subsidy Scheme (India)",
+      "capacityKw": 180000,
+      "status": "not_started",
+      "installation": {
+        "installedItems": [],
+        "pendingItems": [],
+        "scheduledDate": "",
+        "installerName": "To Assign",
+        "lastUpdated": "2025-11-04",
+        "steps": [
+          {
+            "name": "Site Survey",
+            "status": "pending"
+          },
+          {
+            "name": "Design & BOM",
+            "status": "pending"
+          },
+          {
+            "name": "Installation",
+            "status": "pending"
+          },
+          {
+            "name": "Net Metering",
+            "status": "pending"
+          }
+        ]
+      }
+    },
+    {
+      "id": "p1762240730945",
+      "customerName": "Project from l1",
+      "siteAddress": "To Assign",
+      "scheme": "Rooftop Solar Subsidy Scheme (India)",
+      "capacityKw": 0,
+      "status": "not_started",
+      "installation": {
+        "installedItems": [],
+        "pendingItems": [],
+        "scheduledDate": "",
+        "installerName": "To Assign",
+        "lastUpdated": "2025-11-04",
+        "steps": [
+          {
+            "name": "Site Survey",
+            "status": "pending"
+          },
+          {
+            "name": "Design & BOM",
+            "status": "pending"
+          },
+          {
+            "name": "Installation",
+            "status": "pending"
+          },
+          {
+            "name": "Net Metering",
+            "status": "pending"
+          }
+        ]
+      }
+    },
+    {
       "id": "p1",
       "customerName": "Sharma Residence",
       "siteAddress": "Sector 21, Noida, UP",
@@ -851,11 +917,27 @@
   ],
   "quotes": [
     {
+      "id": "q1762240793523",
+      "leadId": "l1",
+      "projectId": "p1762240858832",
+      "items": [
+        {
+          "itemId": null,
+          "name": "l21",
+          "qty": 1,
+          "price": 180000
+        }
+      ],
+      "status": "accepted",
+      "amount": 180000,
+      "createdAt": "2025-11-04T07:19:53.523Z"
+    },
+    {
       "id": "q2001",
       "name": "Residential 2 kW — Rooftop Subsidy",
       "leadId": "l1",
-      "projectId": null,
-      "status": "sent",
+      "projectId": "p1762240730945",
+      "status": "accepted",
       "items": [
         {
           "itemId": "i1",
@@ -1041,7 +1123,12 @@
       ],
       "status": "draft",
       "createdAt": "2025-10-18T10:51:25.721Z",
-      "amount": 354000
+      "amount": 354000,
+      "totals": {
+        "subtotal": 300000,
+        "tax": 54000,
+        "grandTotal": 354000
+      }
     },
     {
       "id": "INV-202510-0001",
@@ -1075,7 +1162,12 @@
       ],
       "status": "draft",
       "createdAt": "2025-10-18T10:47:18.580Z",
-      "amount": 177000
+      "amount": 177000,
+      "totals": {
+        "subtotal": 150000,
+        "tax": 27000,
+        "grandTotal": 177000
+      }
     },
     {
       "id": "inv1760162818281",

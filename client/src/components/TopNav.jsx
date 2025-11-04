@@ -7,6 +7,20 @@ export default function TopNav() {
   const user = JSON.parse(localStorage.getItem('user') || '{}')
   const [online, setOnline] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const role = user?.role || ''
+
+  const canDashboard = ['admin','staff','ops','quotes','finance','sales'].includes(role)
+  const canLeads = ['admin','staff','sales'].includes(role)
+  const canProjects = ['admin','staff','ops','sales'].includes(role)
+  const canInventory = ['admin','staff','ops'].includes(role)
+  const canProcurement = ['admin','staff'].includes(role)
+  const canQuotes = ['admin','staff','quotes','sales'].includes(role)
+  const canService = ['admin','staff'].includes(role)
+  const canInvoices = ['admin','staff','finance'].includes(role)
+  const canReports = ['admin','staff','hr','finance'].includes(role)
+  const canAnnouncements = ['admin','staff','hr'].includes(role)
+  const canHR = role === 'hr'
+  const canAdminProfile = role === 'admin'
   
   useEffect(()=>{
     function handler(e){ setOnline(!!e?.detail?.online) }
@@ -38,55 +52,59 @@ export default function TopNav() {
 
           {/* Desktop Navigation - Hidden on Mobile */}
           <nav className="hidden lg:flex items-center gap-2 xl:gap-3 text-sm mx-4 flex-wrap">
-            {(user?.role === 'admin' || user?.role === 'staff' || user?.role === 'ops') && (
+            {canDashboard && (
               <Link to="/" className={`px-2 xl:px-3 py-1.5 rounded-lg hover:bg-gray-50 whitespace-nowrap ${isActive('/') ? 'text-brand font-medium' : 'text-gray-700'}`}>
                 Dashboard
               </Link>
             )}
-            {(user?.role === 'admin' || user?.role === 'staff') && (
+            {canLeads && (
               <Link to="/leads" className={`px-2 xl:px-3 py-1.5 rounded-lg hover:bg-gray-50 whitespace-nowrap ${isActive('/leads') ? 'text-brand font-medium' : 'text-gray-700'}`}>
                 Leads
               </Link>
             )}
-            {user?.role === 'hr' && (
+            {canHR && (
               <Link to="/hr" className={`px-2 xl:px-3 py-1.5 rounded-lg hover:bg-gray-50 whitespace-nowrap ${isActive('/hr') ? 'text-brand font-medium' : 'text-gray-700'}`}>
                 HR
               </Link>
             )}
-            {(user?.role === 'admin' || user?.role === 'staff' || user?.role === 'ops') && (
+            {canProjects && (
               <Link to="/projects" className={`px-2 xl:px-3 py-1.5 rounded-lg hover:bg-gray-50 whitespace-nowrap ${isActive('/projects') ? 'text-brand font-medium' : 'text-gray-700'}`}>
                 Projects
               </Link>
             )}
-            {(user?.role === 'admin' || user?.role === 'staff' || user?.role === 'hr') && (
+            {canReports && (
               <Link to="/reports" className={`px-2 xl:px-3 py-1.5 rounded-lg hover:bg-gray-50 whitespace-nowrap ${isActive('/reports') ? 'text-brand font-medium' : 'text-gray-700'}`}>
                 Reports
               </Link>
             )}
-            {(user?.role === 'admin' || user?.role === 'staff' || user?.role === 'hr') && (
+            {canAnnouncements && (
               <Link to="/announcements" className={`px-2 xl:px-3 py-1.5 rounded-lg hover:bg-gray-50 whitespace-nowrap ${isActive('/announcements') ? 'text-brand font-medium' : 'text-gray-700'}`}>
                 Announcements
               </Link>
             )}
-            {(user?.role === 'admin' || user?.role === 'staff') && (
-              <>
-                <Link to="/service" className={`px-2 xl:px-3 py-1.5 rounded-lg hover:bg-gray-50 whitespace-nowrap ${isActive('/service') ? 'text-brand font-medium' : 'text-gray-700'}`}>
-                  Service
-                </Link>
-                <Link to="/invoices" className={`px-2 xl:px-3 py-1.5 rounded-lg hover:bg-gray-50 whitespace-nowrap ${isActive('/invoices') ? 'text-brand font-medium' : 'text-gray-700'}`}>
-                  Invoices
-                </Link>
-                <Link to="/procurement" className={`px-2 xl:px-3 py-1.5 rounded-lg hover:bg-gray-50 whitespace-nowrap ${isActive('/procurement') ? 'text-brand font-medium' : 'text-gray-700'}`}>
-                  Procurement
-                </Link>
-                <Link to="/quotes" className={`px-2 xl:px-3 py-1.5 rounded-lg hover:bg-gray-50 whitespace-nowrap ${isActive('/quotes') ? 'text-brand font-medium' : 'text-gray-700'}`}>
-                  Quotes
-                </Link>
-              </>
+            {canService && (
+              <Link to="/service" className={`px-2 xl:px-3 py-1.5 rounded-lg hover:bg-gray-50 whitespace-nowrap ${isActive('/service') ? 'text-brand font-medium' : 'text-gray-700'}`}>
+                Service
+              </Link>
             )}
-            {user?.role === 'ops' && (
+            {canInvoices && (
+              <Link to="/invoices" className={`px-2 xl:px-3 py-1.5 rounded-lg hover:bg-gray-50 whitespace-nowrap ${isActive('/invoices') ? 'text-brand font-medium' : 'text-gray-700'}`}>
+                Invoices
+              </Link>
+            )}
+            {canInventory && (
               <Link to="/inventory" className={`px-2 xl:px-3 py-1.5 rounded-lg hover:bg-gray-50 whitespace-nowrap ${isActive('/inventory') ? 'text-brand font-medium' : 'text-gray-700'}`}>
                 Inventory
+              </Link>
+            )}
+            {canProcurement && (
+              <Link to="/procurement" className={`px-2 xl:px-3 py-1.5 rounded-lg hover:bg-gray-50 whitespace-nowrap ${isActive('/procurement') ? 'text-brand font-medium' : 'text-gray-700'}`}>
+                Procurement
+              </Link>
+            )}
+            {canQuotes && (
+              <Link to="/quotes" className={`px-2 xl:px-3 py-1.5 rounded-lg hover:bg-gray-50 whitespace-nowrap ${isActive('/quotes') ? 'text-brand font-medium' : 'text-gray-700'}`}>
+                Quotes
               </Link>
             )}
           </nav>
@@ -100,7 +118,7 @@ export default function TopNav() {
             </span>
 
             {/* User Info - Desktop Only (clickable to Admin profile) */}
-            <Link to={user?.role==='admin' ? '/admin' : '#'} className="hidden lg:inline-flex items-center gap-2 text-gray-700">
+            <Link to={canAdminProfile ? '/admin' : '#'} className="hidden lg:inline-flex items-center gap-2 text-gray-700">
               <span className="px-2 py-0.5 rounded-md bg-gray-100 border text-xs">
                 <span className="font-medium">{user?.name || 'User'}</span>
                 <span className="mx-1 text-gray-400">•</span>
@@ -131,60 +149,64 @@ export default function TopNav() {
           <div className="lg:hidden mt-3 pb-2 border-t border-gray-100 pt-3">
             <nav className="flex flex-col gap-1">
               {/* User Info - Mobile (clickable) */}
-              <Link to={user?.role==='admin' ? '/admin' : '#'} onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 mb-2 rounded-lg bg-gray-50 border border-gray-200 block">
+              <Link to={canAdminProfile ? '/admin' : '#'} onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 mb-2 rounded-lg bg-gray-50 border border-gray-200 block">
                 <div className="text-sm font-medium text-gray-900">{user?.name || 'User'}</div>
                 <div className="text-xs text-gray-500 uppercase mt-0.5">{user?.role || 'role'}</div>
               </Link>
 
-              {(user?.role === 'admin' || user?.role === 'staff' || user?.role === 'ops') && (
+              {canDashboard && (
                 <Link to="/" onClick={() => setMobileMenuOpen(false)} className={`px-3 py-2.5 rounded-lg hover:bg-gray-50 ${isActive('/') ? 'text-brand font-medium bg-brand/5' : 'text-gray-700'}`}>
                   Dashboard
                 </Link>
               )}
-              {(user?.role === 'admin' || user?.role === 'staff') && (
+              {canLeads && (
                 <Link to="/leads" onClick={() => setMobileMenuOpen(false)} className={`px-3 py-2.5 rounded-lg hover:bg-gray-50 ${isActive('/leads') ? 'text-brand font-medium bg-brand/5' : 'text-gray-700'}`}>
                   Leads
                 </Link>
               )}
-              {user?.role === 'hr' && (
+              {canHR && (
                 <Link to="/hr" onClick={() => setMobileMenuOpen(false)} className={`px-3 py-2.5 rounded-lg hover:bg-gray-50 ${isActive('/hr') ? 'text-brand font-medium bg-brand/5' : 'text-gray-700'}`}>
                   HR Dashboard
                 </Link>
               )}
-              {(user?.role === 'admin' || user?.role === 'staff' || user?.role === 'ops') && (
+              {canProjects && (
                 <Link to="/projects" onClick={() => setMobileMenuOpen(false)} className={`px-3 py-2.5 rounded-lg hover:bg-gray-50 ${isActive('/projects') ? 'text-brand font-medium bg-brand/5' : 'text-gray-700'}`}>
                   Projects
                 </Link>
               )}
-              {(user?.role === 'admin' || user?.role === 'staff' || user?.role === 'hr') && (
+              {canReports && (
                 <Link to="/reports" onClick={() => setMobileMenuOpen(false)} className={`px-3 py-2.5 rounded-lg hover:bg-gray-50 ${isActive('/reports') ? 'text-brand font-medium bg-brand/5' : 'text-gray-700'}`}>
                   Reports
                 </Link>
               )}
-              {(user?.role === 'admin' || user?.role === 'staff' || user?.role === 'hr') && (
+              {canAnnouncements && (
                 <Link to="/announcements" onClick={() => setMobileMenuOpen(false)} className={`px-3 py-2.5 rounded-lg hover:bg-gray-50 ${isActive('/announcements') ? 'text-brand font-medium bg-brand/5' : 'text-gray-700'}`}>
                   Announcements
                 </Link>
               )}
-              {(user?.role === 'admin' || user?.role === 'staff') && (
-                <>
-                  <Link to="/service" onClick={() => setMobileMenuOpen(false)} className={`px-3 py-2.5 rounded-lg hover:bg-gray-50 ${isActive('/service') ? 'text-brand font-medium bg-brand/5' : 'text-gray-700'}`}>
-                    Service
-                  </Link>
-                  <Link to="/invoices" onClick={() => setMobileMenuOpen(false)} className={`px-3 py-2.5 rounded-lg hover:bg-gray-50 ${isActive('/invoices') ? 'text-brand font-medium bg-brand/5' : 'text-gray-700'}`}>
-                    Invoices
-                  </Link>
-                  <Link to="/procurement" onClick={() => setMobileMenuOpen(false)} className={`px-3 py-2.5 rounded-lg hover:bg-gray-50 ${isActive('/procurement') ? 'text-brand font-medium bg-brand/5' : 'text-gray-700'}`}>
-                    Procurement
-                  </Link>
-                  <Link to="/quotes" onClick={() => setMobileMenuOpen(false)} className={`px-3 py-2.5 rounded-lg hover:bg-gray-50 ${isActive('/quotes') ? 'text-brand font-medium bg-brand/5' : 'text-gray-700'}`}>
-                    Quotes
-                  </Link>
-                </>
+              {canService && (
+                <Link to="/service" onClick={() => setMobileMenuOpen(false)} className={`px-3 py-2.5 rounded-lg hover:bg-gray-50 ${isActive('/service') ? 'text-brand font-medium bg-brand/5' : 'text-gray-700'}`}>
+                  Service
+                </Link>
               )}
-              {user?.role === 'ops' && (
+              {canInvoices && (
+                <Link to="/invoices" onClick={() => setMobileMenuOpen(false)} className={`px-3 py-2.5 rounded-lg hover:bg-gray-50 ${isActive('/invoices') ? 'text-brand font-medium bg-brand/5' : 'text-gray-700'}`}>
+                  Invoices
+                </Link>
+              )}
+              {canInventory && (
                 <Link to="/inventory" onClick={() => setMobileMenuOpen(false)} className={`px-3 py-2.5 rounded-lg hover:bg-gray-50 ${isActive('/inventory') ? 'text-brand font-medium bg-brand/5' : 'text-gray-700'}`}>
                   Inventory
+                </Link>
+              )}
+              {canProcurement && (
+                <Link to="/procurement" onClick={() => setMobileMenuOpen(false)} className={`px-3 py-2.5 rounded-lg hover:bg-gray-50 ${isActive('/procurement') ? 'text-brand font-medium bg-brand/5' : 'text-gray-700'}`}>
+                  Procurement
+                </Link>
+              )}
+              {canQuotes && (
+                <Link to="/quotes" onClick={() => setMobileMenuOpen(false)} className={`px-3 py-2.5 rounded-lg hover:bg-gray-50 ${isActive('/quotes') ? 'text-brand font-medium bg-brand/5' : 'text-gray-700'}`}>
+                  Quotes
                 </Link>
               )}
               

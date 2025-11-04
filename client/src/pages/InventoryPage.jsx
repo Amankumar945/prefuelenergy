@@ -19,7 +19,9 @@ export default function InventoryPage() {
   const [editForm, setEditForm] = useState({ name: '', sku: '', unit: 'pcs', stock: 0, minStock: 0 })
 
   const user = JSON.parse(localStorage.getItem('user')||'{}')
-  const isAdmin = user?.role === 'admin'
+  const role = user?.role || ''
+  const canEditInventory = ['admin','staff','ops'].includes(role)
+  const canDeleteInventory = ['admin','ops'].includes(role)
 
   useEffect(() => {
     api.get('/api/items').then((res)=> setItems(res.data.items||[]))
@@ -67,8 +69,8 @@ export default function InventoryPage() {
   const paged = filtered.slice(start, start+pageSize)
 
   function openEdit(it) {
-    if (!isAdmin) {
-      alert('Only admin can edit items')
+    if (!canEditInventory) {
+      alert('You do not have permission to edit inventory items')
       return
     }
     setEditingId(it.id)
@@ -103,7 +105,7 @@ export default function InventoryPage() {
       setEditingId(null)
     } catch (err) {
       const status = err?.response?.status
-      if (status === 403) alert('Only admin can edit items')
+      if (status === 403) alert('You do not have permission to edit items')
       else alert(err?.response?.data?.message || 'Failed to save changes')
     }
   }
@@ -155,19 +157,24 @@ export default function InventoryPage() {
               <div className="text-sm text-gray-600">Unit: {it.unit}</div>
               <div className="text-sm">Stock: <span className="font-medium">{it.stock}</span> • Min: {it.minStock}</div>
               <div className="mt-3 flex items-center justify-between gap-2">
-                <button onClick={()=> openEdit(it)} className="px-3 py-1.5 rounded-lg border text-sm hover:bg-gray-50">Edit details</button>
-                <button onClick={async()=>{
-                  const user = JSON.parse(localStorage.getItem('user')||'{}')
-                  if (user?.role !== 'admin') return alert('Only admin can delete items')
+                {canEditInventory && (
+                  <button onClick={()=> openEdit(it)} className="px-3 py-1.5 rounded-lg border text-sm hover:bg-gray-50">Edit details</button>
+                )}
+                <button
+                  disabled={!canDeleteInventory}
+                  onClick={async()=>{
+                  if (!canDeleteInventory) return alert('You do not have permission to delete items')
                   if (!confirm('Delete this item permanently?')) return
                   try {
                     await api.delete(`/api/items/${it.id}`)
                     setItems((prev)=> prev.filter((x)=> x.id!==it.id))
                   } catch (err) {
                     const status = err?.response?.status
-                    if (status === 403) alert('Only admin can delete items')
+                    if (status === 403) alert('You do not have permission to delete items')
                   }
-                }} className="px-3 py-1.5 rounded-lg border text-sm text-red-600 hover:bg-red-50">Delete</button>
+                }}
+                  className={`px-3 py-1.5 rounded-lg border text-sm ${canDeleteInventory ? 'text-red-600 hover:bg-red-50' : 'text-gray-400 cursor-not-allowed'}`}
+                >Delete</button>
               </div>
             </div>
           ))}

@@ -31,7 +31,7 @@ function RequireRoles({ children, roles = [] }) {
   if (!user?.role) return <Navigate to="/login" replace />
   if (!roles.includes(user.role)) {
     if (user.role === 'hr') return <Navigate to="/hr" replace />
-    return <Navigate to="/login" replace />
+    return <Navigate to="/" replace />
   }
   return children
 }
@@ -45,7 +45,7 @@ export default function App() {
           path="/"
           element={
             <RequireAuth>
-              <RequireRoles roles={["admin", "staff", "ops"]}>
+              <RequireRoles roles={["admin", "staff", "ops", "quotes", "finance", "sales"]}>
                 <DashboardPage />
               </RequireRoles>
             </RequireAuth>
@@ -65,7 +65,7 @@ export default function App() {
           path="/projects"
           element={
             <RequireAuth>
-              <RequireRoles roles={["admin", "staff", "ops"]}>
+              <RequireRoles roles={["admin", "staff", "ops", "sales"]}>
                 <ProjectsPage />
               </RequireRoles>
             </RequireAuth>
@@ -75,7 +75,7 @@ export default function App() {
           path="/projects/:id"
           element={
             <RequireAuth>
-              <RequireRoles roles={["admin", "staff", "ops"]}>
+              <RequireRoles roles={["admin", "staff", "ops", "sales"]}>
                 <ProjectDetailsPage />
               </RequireRoles>
             </RequireAuth>
@@ -85,7 +85,7 @@ export default function App() {
           path="/leads"
           element={
             <RequireAuth>
-              <RequireRoles roles={["admin", "staff"]}>
+              <RequireRoles roles={["admin", "staff", "sales"]}>
                 <LeadsPage />
               </RequireRoles>
             </RequireAuth>
@@ -115,7 +115,7 @@ export default function App() {
           path="/quotes"
           element={
             <RequireAuth>
-              <RequireRoles roles={["admin", "staff"]}>
+              <RequireRoles roles={["admin", "staff", "quotes", "sales"]}>
                 <QuotesPage />
               </RequireRoles>
             </RequireAuth>
@@ -135,7 +135,7 @@ export default function App() {
           path="/invoices"
           element={
             <RequireAuth>
-              <RequireRoles roles={["admin", "staff"]}>
+              <RequireRoles roles={["admin", "staff", "finance"]}>
                 <InvoicesPage />
               </RequireRoles>
             </RequireAuth>
@@ -165,7 +165,7 @@ export default function App() {
           path="/reports"
           element={
             <RequireAuth>
-              <RequireRoles roles={["admin", "staff", "hr"]}>
+              <RequireRoles roles={["admin", "staff", "hr", "finance"]}>
                 <ReportsPage />
               </RequireRoles>
             </RequireAuth>

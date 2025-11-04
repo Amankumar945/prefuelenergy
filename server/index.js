@@ -155,6 +155,34 @@ const users = [
     role: 'ops',
     password: '9105928915',
   },
+  {
+    id: 'u5',
+    name: 'Quotes Specialist',
+    email: 'joshi@gmail.com',
+    role: 'quotes',
+    password: 'joshi@123',
+  },
+  {
+    id: 'u6',
+    name: 'Finance Lead',
+    email: 'deppak@gmail.com',
+    role: 'finance',
+    password: 'deepak@123',
+  },
+  {
+    id: 'u7',
+    name: 'Narendra Prefuel',
+    email: 'Narendra@prefuel',
+    role: 'admin',
+    password: 'Narendra@greentree',
+  },
+  {
+    id: 'u8',
+    name: 'Awasthi Prefuel',
+    email: 'Awasthi@prefuel',
+    role: 'sales',
+    password: 'Awasthi@123',
+  },
 ];
 
 // In-memory sample data
@@ -164,10 +192,10 @@ const leads = {
 };
 
 const teleCallers = [
-  { id: 't1', name: 'Aarav', active: true },
-  { id: 't2', name: 'Priya', active: false },
-  { id: 't3', name: 'Rohit', active: true },
-  { id: 't4', name: 'Neha', active: false },
+  { id: 'tc1', name: 'Alisha', active: true, isTl: true },
+  { id: 'tc2', name: 'Priyanshi', active: true, isTl: false },
+  { id: 'tc3', name: 'Farha', active: true, isTl: false },
+  { id: 'tc4', name: 'Ummul', active: true, isTl: false },
 ];
 
 const conversions = {
@@ -621,6 +649,15 @@ function generateToken(user) {
 function requireRole(role) {
   return function(req, res, next) {
     if (!req.user || req.user.role !== role) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    next();
+  }
+}
+
+function requireRolesList(roles = []) {
+  return function(req, res, next) {
+    if (!req.user || !roles.includes(req.user.role)) {
       return res.status(403).json({ message: 'Forbidden' });
     }
     next();
@@ -1255,7 +1292,7 @@ app.post('/api/items', authMiddleware, writeRateLimit, validateZod(ItemCreateSch
 }));
 
 // Update item details
-app.put('/api/items/:id', authMiddleware, writeRateLimit, requireRole('admin'), (req, res) => {
+app.put('/api/items/:id', authMiddleware, writeRateLimit, requireRolesList(['admin','ops']), (req, res) => {
   const idx = items.findIndex((i) => i.id === req.params.id);
   if (idx === -1) return res.status(404).json({ message: 'Item not found' });
   const patch = { ...req.body };
@@ -1271,7 +1308,7 @@ app.put('/api/items/:id', authMiddleware, writeRateLimit, requireRole('admin'), 
 });
 
 // Delete item (admin only)
-app.delete('/api/items/:id', authMiddleware, writeRateLimit, requireRole('admin'), (req, res) => {
+app.delete('/api/items/:id', authMiddleware, writeRateLimit, requireRolesList(['admin','ops']), (req, res) => {
   const idx = items.findIndex((i) => i.id === req.params.id);
   if (idx === -1) return res.status(404).json({ message: 'Item not found' });
   const [removed] = items.splice(idx, 1);

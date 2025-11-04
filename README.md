@@ -56,11 +56,16 @@ npm run dev
 - `VITE_API_BASE_URL` (default: `http://localhost:5000`)
 
 ## Authentication and roles
-- Roles: `admin`, `staff`, `hr` (enforced on both client routes and server endpoints)
+- Roles: `admin`, `staff`, `hr`, `ops`, `quotes`, `finance`, `sales` (enforced on both client routes and server endpoints)
 - Demo users (plain text passwords; demo only):
   - Admin: `admin@prefuel` / `Admin@12345`
+  - Admin (Narendra): `Narendra@prefuel` / `Narendra@greentree`
   - Staff: `staff@prefuel` / `Staff@12345`
   - HR: `hr@prefuel` / `Hr@2025!`
+  - Ops (Dashboard • Projects • Inventory): `pk5099985@gmail.com` / `9105928915`
+  - Quotes (Dashboard • Quotes): `joshi@gmail.com` / `joshi@123`
+  - Finance (Dashboard • Invoices • Reports): `deppak@gmail.com` / `deepak@123`
+  - Sales (Dashboard • Leads • Quotes • Projects): `Awasthi@prefuel` / `Awasthi@123`
 
 Client stores `token` and `user` in `localStorage` and injects `Authorization: Bearer <token>` via Axios interceptor. On 401, it clears storage and redirects to `/login`.
 
