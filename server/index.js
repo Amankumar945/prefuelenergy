@@ -124,6 +124,18 @@ const POCreateSchema = z.object({
   lines: z.array(z.object({ itemId: z.string(), qty: z.number().nonnegative(), unitPrice: z.number().nonnegative(), taxPercent: z.number().min(0).max(28).optional() })).optional()
 })
 
+const ComplaintCreateSchema = z.object({
+  projectId: z.string().nullable().optional(),
+  customerName: z.string().min(1).max(120),
+  customerPhone: z.string().optional(),
+  customerEmail: z.string().email().optional().or(z.literal('')),
+  complaintType: z.enum(['technical', 'installation', 'billing', 'service', 'other']),
+  priority: z.enum(['low', 'medium', 'high', 'critical']),
+  title: z.string().min(1).max(200),
+  description: z.string().min(1).max(1000),
+  assignedTo: z.string().optional()
+})
+
 // In-memory users (simple for MVP)
 // Passwords are stored in plain text strictly for demo simplicity. Do NOT use in production.
 const users = [
@@ -625,6 +637,43 @@ const invoices = [
   },
 ];
 
+// Complaints management
+const complaints = [
+  // { id, projectId, customerName, customerPhone, customerEmail, complaintType, priority, title, description, status, assignedTo, createdAt, updatedAt, resolution }
+  {
+    id: 'cmp1001',
+    projectId: 'p1',
+    customerName: 'Sharma Residence',
+    customerPhone: '+91-9000000003',
+    customerEmail: 'sharma@example.com',
+    complaintType: 'technical',
+    priority: 'medium',
+    title: 'Panel output lower than expected',
+    description: 'Customer reports that solar panels are generating 20% less power than expected. Installed 10 panels but output seems inadequate.',
+    status: 'open',
+    assignedTo: 'ops',
+    createdAt: '2025-10-05T10:00:00Z',
+    updatedAt: '2025-10-05T10:00:00Z',
+    resolution: null
+  },
+  {
+    id: 'cmp1002',
+    projectId: 'p2',
+    customerName: 'Gupta Apartments',
+    customerPhone: '+91-9000000004',
+    customerEmail: 'gupta@example.com',
+    complaintType: 'installation',
+    priority: 'high',
+    title: 'Wiring issues after installation',
+    description: 'Post-installation inspection revealed improper wiring connections. Customer experiencing intermittent power issues.',
+    status: 'in_progress',
+    assignedTo: 'staff',
+    createdAt: '2025-10-03T14:30:00Z',
+    updatedAt: '2025-10-04T09:15:00Z',
+    resolution: 'Technician assigned for immediate repair'
+  }
+];
+
 // Announcements (global)
 const announcements = [
   // { id, title, body, audience: 'all'|'staff'|'hr'|'sales', startsAt, endsAt, active: boolean, createdBy }
@@ -699,6 +748,7 @@ function persistSnapshot() {
       attendanceRecord,
       serviceTickets,
       invoices,
+      complaints,
       announcements,
       auditLogs,
       leads,
@@ -723,6 +773,7 @@ function loadFromSnapshot() {
     if (parsed.attendanceRecord && typeof parsed.attendanceRecord === 'object') { attendanceRecord = parsed.attendanceRecord; }
     if (Array.isArray(parsed.serviceTickets)) { serviceTickets.splice(0, serviceTickets.length, ...parsed.serviceTickets); }
     if (Array.isArray(parsed.invoices)) { invoices.splice(0, invoices.length, ...parsed.invoices); }
+    if (Array.isArray(parsed.complaints)) { complaints.splice(0, complaints.length, ...parsed.complaints); }
     if (Array.isArray(parsed.announcements)) { announcements.splice(0, announcements.length, ...parsed.announcements); }
     if (Array.isArray(parsed.auditLogs)) { auditLogs.splice(0, auditLogs.length, ...parsed.auditLogs); }
     if (parsed.leads && typeof parsed.leads === 'object') { Object.assign(leads, parsed.leads); }
@@ -1562,6 +1613,82 @@ app.put('/api/invoices/:id', authMiddleware, writeRateLimit, (req, res) => {
   res.json({ invoice: { ...invoices[idx], totals } });
 });
 
+// Complaints management
+app.get('/api/complaints', authMiddleware, (req, res) => {
+  const { page, size, status, priority, projectId } = req.query || {}
+  let filtered = [...complaints]
+
+  if (status) filtered = filtered.filter(c => c.status === status)
+  if (priority) filtered = filtered.filter(c => c.priority === priority)
+  if (projectId) filtered = filtered.filter(c => c.projectId === projectId)
+
+  // Sort by updatedAt descending
+  filtered.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+
+  if (page || size) {
+    const result = paginate(filtered, page, size)
+    return res.json({ complaints: result.data, page: result.page, size: result.size, total: result.total })
+  }
+  res.json({ complaints: filtered })
+});
+
+app.post('/api/complaints', authMiddleware, writeRateLimit, validateZod(ComplaintCreateSchema), asyncHandler(async (req, res) => {
+  const { projectId, customerName, customerPhone, customerEmail, complaintType, priority, title, description, assignedTo } = req.body || {};
+  const now = new Date().toISOString()
+  const cmp = {
+    id: `cmp${Date.now()}`,
+    projectId: projectId || null,
+    customerName,
+    customerPhone: customerPhone || '',
+    customerEmail: customerEmail || '',
+    complaintType,
+    priority,
+    title,
+    description,
+    status: 'open',
+    assignedTo: assignedTo || null,
+    createdAt: now,
+    updatedAt: now,
+    resolution: null
+  };
+  complaints.unshift(cmp);
+  persistSnapshot();
+  sseBroadcast({ type: 'create', entity: 'complaint', id: cmp.id, payload: cmp });
+  logAudit(req, 'complaint', 'create', cmp.id, { type: complaintType, priority });
+  res.json({ complaint: cmp });
+}));
+
+app.put('/api/complaints/:id', authMiddleware, writeRateLimit, (req, res) => {
+  const idx = complaints.findIndex((c) => c.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ message: 'Complaint not found' });
+
+  const patch = { ...req.body };
+  if (patch.status && patch.status === 'resolved' && !patch.resolution) {
+    return res.status(400).json({ message: 'Resolution is required when marking as resolved' });
+  }
+
+  complaints[idx] = {
+    ...complaints[idx],
+    ...patch,
+    updatedAt: new Date().toISOString()
+  };
+
+  persistSnapshot();
+  sseBroadcast({ type: 'update', entity: 'complaint', id: complaints[idx].id, payload: complaints[idx] });
+  logAudit(req, 'complaint', 'update', complaints[idx].id, { status: patch.status });
+  res.json({ complaint: complaints[idx] });
+});
+
+app.delete('/api/complaints/:id', authMiddleware, writeRateLimit, requireRole('admin'), (req, res) => {
+  const idx = complaints.findIndex((c) => c.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ message: 'Complaint not found' });
+  const [removed] = complaints.splice(idx, 1);
+  persistSnapshot();
+  sseBroadcast({ type: 'delete', entity: 'complaint', id: removed.id });
+  logAudit(req, 'complaint', 'delete', removed.id);
+  res.json({ removed });
+});
+
 // Admin: Reset all data to a clean state (dangerous). Admin only.
 app.post('/api/admin/reset-data', authMiddleware, writeRateLimit, requireRole('admin'), (req, res) => {
   try {
@@ -1575,6 +1702,7 @@ app.post('/api/admin/reset-data', authMiddleware, writeRateLimit, requireRole('a
     tasks.length = 0;
     serviceTickets.length = 0;
     invoices.length = 0;
+    complaints.length = 0;
     announcements.length = 0;
     auditLogs.length = 0;
     // Reset simple objects
@@ -1596,6 +1724,7 @@ app.post('/api/admin/reset-data', authMiddleware, writeRateLimit, requireRole('a
     try { sseBroadcast({ type: 'bulk', entity: 'task', payload: [] }) } catch (_) {}
     try { sseBroadcast({ type: 'bulk', entity: 'serviceTicket', payload: [] }) } catch (_) {}
     try { sseBroadcast({ type: 'bulk', entity: 'invoice', payload: [] }) } catch (_) {}
+    try { sseBroadcast({ type: 'bulk', entity: 'complaint', payload: [] }) } catch (_) {}
     try { sseBroadcast({ type: 'bulk', entity: 'announcement', payload: [] }) } catch (_) {}
 
     try { logAudit(req, 'system', 'reset', 'all', { by: req?.user?.email||'admin' }) } catch (_) {}

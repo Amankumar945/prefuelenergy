@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import TopNav from '../components/TopNav.jsx'
 import Footer from '../components/Footer.jsx'
 import { api } from '../utils/api.js'
@@ -122,6 +123,12 @@ export default function InvoicesPage() {
               <div className="flex items-center justify-between">
                 <div className="font-medium">{inv.id}</div>
                 <div className="flex items-center gap-2">
+                  <Link
+                    to={`/invoices/${inv.id}/print`}
+                    className="text-xs px-2 py-1 rounded-lg border hover:bg-gray-50"
+                  >
+                    Print template
+                  </Link>
                   <button onClick={()=> openEdit(inv)} className="text-xs px-2 py-1 rounded-lg border hover:bg-gray-50">Edit details</button>
                   <span className="text-xs bg-gray-100 px-2 py-0.5 rounded">{inv.status}</span>
                 </div>

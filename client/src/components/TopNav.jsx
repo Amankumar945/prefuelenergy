@@ -19,6 +19,7 @@ export default function TopNav() {
   const canInvoices = ['admin','staff','finance'].includes(role)
   const canReports = ['admin','staff','hr','finance'].includes(role)
   const canAnnouncements = ['admin','staff','hr'].includes(role)
+  const canComplaints = ['admin','staff','ops','sales'].includes(role)
   const canHR = role === 'hr'
   const canAdminProfile = role === 'admin'
   
@@ -105,6 +106,11 @@ export default function TopNav() {
             {canQuotes && (
               <Link to="/quotes" className={`px-2 xl:px-3 py-1.5 rounded-lg hover:bg-gray-50 whitespace-nowrap ${isActive('/quotes') ? 'text-brand font-medium' : 'text-gray-700'}`}>
                 Quotes
+              </Link>
+            )}
+            {canComplaints && (
+              <Link to="/complaints" className={`px-2 xl:px-3 py-1.5 rounded-lg hover:bg-gray-50 whitespace-nowrap ${isActive('/complaints') ? 'text-brand font-medium' : 'text-gray-700'}`}>
+                Complaints
               </Link>
             )}
           </nav>
@@ -209,7 +215,12 @@ export default function TopNav() {
                   Quotes
                 </Link>
               )}
-              
+              {canComplaints && (
+                <Link to="/complaints" onClick={() => setMobileMenuOpen(false)} className={`px-3 py-2.5 rounded-lg hover:bg-gray-50 ${isActive('/complaints') ? 'text-brand font-medium bg-brand/5' : 'text-gray-700'}`}>
+                  Complaints
+                </Link>
+              )}
+
               {/* Logout Button - Mobile */}
               <button onClick={logout} className="mt-3 px-3 py-2.5 rounded-lg bg-brand text-white hover:bg-brand-dark font-medium w-full text-left">
                 Logout

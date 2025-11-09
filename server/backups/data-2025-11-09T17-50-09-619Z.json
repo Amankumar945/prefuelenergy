@@ -1300,10 +1300,10 @@
       "priority": "high",
       "title": "Wiring issues after installation",
       "description": "Post-installation inspection revealed improper wiring connections. Customer experiencing intermittent power issues.",
-      "status": "closed",
+      "status": "in_progress",
       "assignedTo": "ops",
       "createdAt": "2025-10-03T14:30:00Z",
-      "updatedAt": "2025-11-09T17:50:26.795Z",
+      "updatedAt": "2025-11-09T17:39:50.959Z",
       "resolution": "Technician assigned for immediate repair"
     }
   ],
@@ -1330,28 +1330,6 @@
     }
   ],
   "auditLogs": [
-    {
-      "id": "al1762710626803401",
-      "ts": "2025-11-09T17:50:26.803Z",
-      "user": "admin@prefuel",
-      "entity": "complaint",
-      "action": "update",
-      "entityId": "cmp1002",
-      "details": {
-        "status": "closed"
-      }
-    },
-    {
-      "id": "al1762710609621201",
-      "ts": "2025-11-09T17:50:09.621Z",
-      "user": "admin@prefuel",
-      "entity": "complaint",
-      "action": "update",
-      "entityId": "cmp1001",
-      "details": {
-        "status": "open"
-      }
-    },
     {
       "id": "al17627105980522",
       "ts": "2025-11-09T17:49:58.052Z",

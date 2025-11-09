@@ -13,6 +13,9 @@ import InvoicesPage from './pages/InvoicesPage.jsx'
 import AnnouncementsPage from './pages/AnnouncementsPage.jsx'
 import ReportsPage from './pages/ReportsPage.jsx'
 import AdminProfilePage from './pages/AdminProfilePage.jsx'
+import ComplaintsPage from './pages/ComplaintsPage.jsx'
+import InvoicePrintPage from './pages/InvoicePrintPage.jsx'
+import QuotePrintPage from './pages/QuotePrintPage.jsx'
 
 function RequireAuth({ children }) {
   const token = localStorage.getItem('token')
@@ -122,6 +125,16 @@ export default function App() {
           }
         />
         <Route
+          path="/quotes/:id/print"
+          element={
+            <RequireAuth>
+              <RequireRoles roles={["admin", "staff", "quotes", "sales"]}>
+                <QuotePrintPage />
+              </RequireRoles>
+            </RequireAuth>
+          }
+        />
+        <Route
           path="/service"
           element={
             <RequireAuth>
@@ -142,11 +155,31 @@ export default function App() {
           }
         />
         <Route
+          path="/invoices/:id/print"
+          element={
+            <RequireAuth>
+              <RequireRoles roles={["admin", "staff", "finance"]}>
+                <InvoicePrintPage />
+              </RequireRoles>
+            </RequireAuth>
+          }
+        />
+        <Route
           path="/announcements"
           element={
             <RequireAuth>
               <RequireRoles roles={["admin", "staff", "hr"]}>
                 <AnnouncementsPage />
+              </RequireRoles>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/complaints"
+          element={
+            <RequireAuth>
+              <RequireRoles roles={["admin", "staff", "ops", "sales"]}>
+                <ComplaintsPage />
               </RequireRoles>
             </RequireAuth>
           }

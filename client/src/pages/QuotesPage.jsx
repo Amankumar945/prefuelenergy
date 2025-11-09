@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import TopNav from '../components/TopNav.jsx'
 import Footer from '../components/Footer.jsx'
 import { api } from '../utils/api.js'
 import { subscribeToLive } from '../utils/live.js'
+import { formatINR } from '../utils/currency.js'
 
 export default function QuotesPage() {
   const [leads, setLeads] = useState([])
@@ -80,7 +82,7 @@ export default function QuotesPage() {
                 <option value="">Select lead</option>
                 {leads.map((l)=> <option key={l.id} value={l.id}>{l.name} • {l.status}</option>)}
               </select>
-              <div className="sm:col-span-2 text-right text-sm text-gray-600">Total: <span className="font-semibold">₹ {formTotal.toLocaleString()}</span></div>
+              <div className="sm:col-span-2 text-right text-sm text-gray-600">Total: <span className="font-semibold">{formatINR(formTotal)}</span></div>
             </div>
 
             <div className="space-y-2">
@@ -106,7 +108,7 @@ export default function QuotesPage() {
             <div key={q.id} className="border rounded-2xl p-5 bg-white shadow-sm">
               <div className="flex items-center justify-between"><div className="font-medium">Quote {q.id}</div><span className="text-xs bg-gray-100 px-2 py-0.5 rounded">{q.status}</span></div>
               <div className="text-sm text-gray-600">Lead: {q.leadId || '—'}</div>
-              <div className="text-sm">Amount: <span className="font-semibold">₹ {Number(q.amount||0).toLocaleString()}</span></div>
+              <div className="text-sm">Amount: <span className="font-semibold">{formatINR(q.amount || 0)}</span></div>
               <div className="mt-2 text-xs text-gray-500">Lines: {q.items?.length||0}</div>
               {!q.projectId && (
                 <div className="mt-3 grid grid-cols-1 gap-2 text-sm">
@@ -116,6 +118,14 @@ export default function QuotesPage() {
                   <button onClick={()=>convertToProject(q.id)} className="rounded-lg bg-emerald-600 text-white px-3 py-2 hover:bg-emerald-700">Convert to Project</button>
                 </div>
               )}
+              <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                <Link
+                  to={`/quotes/${q.id}/print`}
+                  className="inline-flex items-center px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-sm text-gray-700"
+                >
+                  Print template
+                </Link>
+              </div>
               {q.projectId && <div className="mt-2 text-xs text-emerald-700">Converted → {q.projectId}</div>}
             </div>
           ))}

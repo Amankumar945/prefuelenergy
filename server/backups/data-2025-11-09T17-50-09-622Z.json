@@ -1,6 +1,72 @@
 {
   "projects": [
     {
+      "id": "p1762240858832",
+      "customerName": "Jaiswal",
+      "siteAddress": "Bareilly",
+      "scheme": "Rooftop Solar Subsidy Scheme (India)",
+      "capacityKw": 180000,
+      "status": "not_started",
+      "installation": {
+        "installedItems": [],
+        "pendingItems": [],
+        "scheduledDate": "",
+        "installerName": "To Assign",
+        "lastUpdated": "2025-11-04",
+        "steps": [
+          {
+            "name": "Site Survey",
+            "status": "pending"
+          },
+          {
+            "name": "Design & BOM",
+            "status": "pending"
+          },
+          {
+            "name": "Installation",
+            "status": "pending"
+          },
+          {
+            "name": "Net Metering",
+            "status": "pending"
+          }
+        ]
+      }
+    },
+    {
+      "id": "p1762240730945",
+      "customerName": "Project from l1",
+      "siteAddress": "To Assign",
+      "scheme": "Rooftop Solar Subsidy Scheme (India)",
+      "capacityKw": 0,
+      "status": "not_started",
+      "installation": {
+        "installedItems": [],
+        "pendingItems": [],
+        "scheduledDate": "",
+        "installerName": "To Assign",
+        "lastUpdated": "2025-11-04",
+        "steps": [
+          {
+            "name": "Site Survey",
+            "status": "pending"
+          },
+          {
+            "name": "Design & BOM",
+            "status": "pending"
+          },
+          {
+            "name": "Installation",
+            "status": "pending"
+          },
+          {
+            "name": "Net Metering",
+            "status": "pending"
+          }
+        ]
+      }
+    },
+    {
       "id": "p1",
       "customerName": "Sharma Residence",
       "siteAddress": "Sector 21, Noida, UP",
@@ -851,11 +917,27 @@
   ],
   "quotes": [
     {
+      "id": "q1762240793523",
+      "leadId": "l1",
+      "projectId": "p1762240858832",
+      "items": [
+        {
+          "itemId": null,
+          "name": "l21",
+          "qty": 1,
+          "price": 180000
+        }
+      ],
+      "status": "accepted",
+      "amount": 180000,
+      "createdAt": "2025-11-04T07:19:53.523Z"
+    },
+    {
       "id": "q2001",
       "name": "Residential 2 kW — Rooftop Subsidy",
       "leadId": "l1",
-      "projectId": null,
-      "status": "sent",
+      "projectId": "p1762240730945",
+      "status": "accepted",
       "items": [
         {
           "itemId": "i1",
@@ -1041,7 +1123,12 @@
       ],
       "status": "draft",
       "createdAt": "2025-10-18T10:51:25.721Z",
-      "amount": 354000
+      "amount": 354000,
+      "totals": {
+        "subtotal": 300000,
+        "tax": 54000,
+        "grandTotal": 354000
+      }
     },
     {
       "id": "INV-202510-0001",
@@ -1075,7 +1162,12 @@
       ],
       "status": "draft",
       "createdAt": "2025-10-18T10:47:18.580Z",
-      "amount": 177000
+      "amount": 177000,
+      "totals": {
+        "subtotal": 150000,
+        "tax": 27000,
+        "grandTotal": 177000
+      }
     },
     {
       "id": "inv1760162818281",
@@ -1181,6 +1273,40 @@
       }
     }
   ],
+  "complaints": [
+    {
+      "id": "cmp1001",
+      "projectId": "p1",
+      "customerName": "Sharma Residence",
+      "customerPhone": "+91-9000000003",
+      "customerEmail": "sharma@example.com",
+      "complaintType": "technical",
+      "priority": "medium",
+      "title": "Panel output lower than expected",
+      "description": "Customer reports that solar panels are generating 20% less power than expected. Installed 10 panels but output seems inadequate.",
+      "status": "open",
+      "assignedTo": "staff",
+      "createdAt": "2025-10-05T10:00:00Z",
+      "updatedAt": "2025-11-09T17:50:09.617Z",
+      "resolution": ""
+    },
+    {
+      "id": "cmp1002",
+      "projectId": "p2",
+      "customerName": "Gupta Apartments",
+      "customerPhone": "+91-9000000004",
+      "customerEmail": "gupta@example.com",
+      "complaintType": "installation",
+      "priority": "high",
+      "title": "Wiring issues after installation",
+      "description": "Post-installation inspection revealed improper wiring connections. Customer experiencing intermittent power issues.",
+      "status": "in_progress",
+      "assignedTo": "ops",
+      "createdAt": "2025-10-03T14:30:00Z",
+      "updatedAt": "2025-11-09T17:39:50.959Z",
+      "resolution": "Technician assigned for immediate repair"
+    }
+  ],
   "announcements": [
     {
       "id": "a1760162782700",
@@ -1203,7 +1329,52 @@
       "createdBy": "admin"
     }
   ],
-  "auditLogs": [],
+  "auditLogs": [
+    {
+      "id": "al1762710609621201",
+      "ts": "2025-11-09T17:50:09.621Z",
+      "user": "admin@prefuel",
+      "entity": "complaint",
+      "action": "update",
+      "entityId": "cmp1001",
+      "details": {
+        "status": "open"
+      }
+    },
+    {
+      "id": "al17627105980522",
+      "ts": "2025-11-09T17:49:58.052Z",
+      "user": "admin@prefuel",
+      "entity": "complaint",
+      "action": "update",
+      "entityId": "cmp1001",
+      "details": {
+        "status": "open"
+      }
+    },
+    {
+      "id": "al176270999096686",
+      "ts": "2025-11-09T17:39:50.966Z",
+      "user": "admin@prefuel",
+      "entity": "complaint",
+      "action": "update",
+      "entityId": "cmp1002",
+      "details": {
+        "status": "in_progress"
+      }
+    },
+    {
+      "id": "al1762709986607631",
+      "ts": "2025-11-09T17:39:46.607Z",
+      "user": "admin@prefuel",
+      "entity": "complaint",
+      "action": "update",
+      "entityId": "cmp1002",
+      "details": {
+        "status": "in_progress"
+      }
+    }
+  ],
   "leads": {
     "organic": 42,
     "inorganic": 23

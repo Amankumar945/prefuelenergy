@@ -9,10 +9,12 @@ export default function Modal({ open, title, children, onClose, primary, onPrima
           <button onClick={onClose} className="px-2 py-1 text-gray-500 hover:text-gray-700">✕</button>
         </div>
         <div className="mt-4">{children}</div>
-        <div className="mt-5 flex justify-end gap-2">
-          <button onClick={onClose} className="px-3 py-2 rounded-lg border text-sm">Cancel</button>
-          <button onClick={onPrimary} className={`px-3 py-2 rounded-lg text-white text-sm ${primary || 'bg-brand hover:bg-brand-dark'}`}>{primaryText}</button>
-        </div>
+        {onPrimary && (
+          <div className="mt-5 flex justify-end gap-2">
+            <button onClick={onClose} className="px-3 py-2 rounded-lg border text-sm">Cancel</button>
+            <button onClick={onPrimary} className={`px-3 py-2 rounded-lg text-white text-sm ${primary || 'bg-brand hover:bg-brand-dark'}`}>{primaryText}</button>
+          </div>
+        )}
       </div>
     </div>
   )
